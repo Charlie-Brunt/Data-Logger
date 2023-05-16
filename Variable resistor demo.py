@@ -1,14 +1,41 @@
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy as np
 import serial
-import time
+import datetime as dt
 
 ser = serial.Serial("COM6", 9600)
+x=0
+xs = []
+ys = []
+now = dt.datetime.now()
+fig = plt.figure()
+ax = plt.subplot(1, 1, 1)
 
-while True:
+
+def animate(i, xs, ys):
+    global x
+    # read serial data
     line = ser.readline()
     datastr = line.decode()
-    data = datastr.strip()
-    print(data)
+    data = int(datastr.strip())
+
+    xs.append(x)
+    x += 1
+    ys.append(data)
+
+    xs = xs[-100:]
+    ys = ys[-100:]
+
+    ax.clear()
+    ax.plot(xs, ys)
+
+    plt.xticks(rotation=45, ha='right')
+    plt.subplots_adjust(bottom=0.30)
+    plt.title('Voltage over Time')
+    plt.ylabel('Voltage')
+
+ani = animation.FuncAnimation(fig, animate, fargs=(xs, ys), interval=5)
+plt.show()
 
 
