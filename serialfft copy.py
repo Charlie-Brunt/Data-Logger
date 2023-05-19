@@ -32,7 +32,8 @@ plt.show()
 from scipy.io.wavfile import write
 
 # Remember SAMPLE_RATE = 44100 Hz is our playback rate
-write("mysinewave.wav", SAMPLE_RATE, high_tone)
+write("hightone.wav", SAMPLE_RATE, high_tone)
+write("mysinewave.wav", SAMPLE_RATE, normalized_tone)
 
 from scipy.fft import fft, fftfreq
 
