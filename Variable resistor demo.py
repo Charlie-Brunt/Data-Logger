@@ -1,41 +1,34 @@
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
-import serial
-import datetime as dt
+from matplotlib import pyplot as plt
 
-ser = serial.Serial("COM6", 9600)
-x=0
-xs = []
-ys = []
-now = dt.datetime.now()
-fig = plt.figure()
-ax = plt.subplot(1, 1, 1)
+SAMPLE_RATE = 44100  # Hertz
+DURATION = 5  # Seconds
 
+def generate_sine_wave(freq, sample_rate, duration):
+    x = np.linspace(0, duration, sample_rate * duration, endpoint=False)
+    frequencies = x * freq
+    # 2pi because np.sin takes radians
+    y = np.sin((2 * np.pi) * frequencies)
+    return x, y
 
-def animate(i, xs, ys):
-    global x
-    # read serial data
-    line = ser.readline()
-    datastr = line.decode()
-    data = int(datastr.strip())
-
-    xs.append(x)
-    x += 1
-    ys.append(data)
-
-    xs = xs[-100:]
-    ys = ys[-100:]
-
-    ax.clear()
-    ax.plot(xs, ys)
-
-    plt.xticks(rotation=45, ha='right')
-    plt.subplots_adjust(bottom=0.30)
-    plt.title('Voltage over Time')
-    plt.ylabel('Voltage')
-
-ani = animation.FuncAnimation(fig, animate, fargs=(xs, ys), interval=5)
+# Generate a 2 hertz sine wave that lasts for 5 seconds
+x, y = generate_sine_wave(2, SAMPLE_RATE, DURATION)
+plt.plot(x, y)
 plt.show()
 
+_, nice_tone = generate_sine_wave(400, SAMPLE_RATE, DURATION)
+_, noise_tone = generate_sine_wave(4000, SAMPLE_RATE, DURATION)
+noise_tone = noise_tone * 0.3
+
+mixed_tone = nice_tone + noise_tone
+
+normalized_tone = np.int16((mixed_tone / mixed_tone.max()) * 32767)
+
+plt.plot(normalized_tone[:1000])
+plt.show()
+
+from scipy.io.wavfile import write
+
+# Remember SAMPLE_RATE = 44100 Hz is our playback rate
+write("mysinewave.wav", SAMPLE_RATE, normalized_tone)
 
