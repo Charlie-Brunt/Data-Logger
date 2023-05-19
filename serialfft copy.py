@@ -1,38 +1,46 @@
-import numpy as np 
-import pyaudio as pa 
-import serial
-import struct 
-import matplotlib.pyplot as plt 
+import numpy as np
+from matplotlib import pyplot as plt
 
-CHUNK = 1024 * 2
-FORMAT = pa.paInt16
-CHANNELS = 1
-RATE = 44100 # in Hz
+SAMPLE_RATE = 44100  # Hertz
+DURATION = 5  # Seconds
 
-# p = pa.PyAudio()
+def generate_sine_wave(freq, sample_rate, duration):
+    x = np.linspace(0, duration, sample_rate * duration, endpoint=False)
+    frequencies = x * freq
+    # 2pi because np.sin takes radians
+    y = np.sin((2 * np.pi) * frequencies)
+    return x, y
 
-# stream = p.open(
-#     format = FORMAT,
-#     channels = CHANNELS,
-#     rate = RATE,
-#     input=True,
-#     output=True,
-#     frames_per_buffer=CHUNK
-# )
+# Generate a 2 hertz sine wave that lasts for 5 seconds
+x, y = generate_sine_wave(2, SAMPLE_RATE, DURATION)
+plt.plot(x, y)
+plt.show()
 
-ser = serial.Serial("com6", baudrate = 38400)
+_, nice_tone = generate_sine_wave(400, SAMPLE_RATE, DURATION)
+_, noise_tone = generate_sine_wave(4000, SAMPLE_RATE, DURATION)
+noise_tone = noise_tone * 0.3
+
+mixed_tone = nice_tone + noise_tone
+
+normalized_tone = np.int16((mixed_tone / mixed_tone.max()) * 32767)
+high_tone = np.int16((noise_tone / noise_tone.max()) * 32767)
+
+plt.plot(normalized_tone[:1000])
+plt.show()
 
 
-fig,ax = plt.subplots()
-x = np.arange(0,2*CHUNK,2)
-line, = ax.plot(x, np.random.rand(CHUNK),'r')
-ax.set_ylim(-60000,60000)
-ax.ser_xlim = (0,CHUNK)
-fig.show()
+from scipy.io.wavfile import write
 
-while 1:
-    data = stream.read(CHUNK)
-    dataInt = struct.unpack(str(CHUNK) + 'h', data)
-    line.set_ydata(dataInt)
-    fig.canvas.draw()
-    fig.canvas.flush_events()
+# Remember SAMPLE_RATE = 44100 Hz is our playback rate
+write("mysinewave.wav", SAMPLE_RATE, high_tone)
+
+from scipy.fft import fft, fftfreq
+
+# Number of samples in normalized_tone
+N = SAMPLE_RATE * DURATION
+
+yf = fft(normalized_tone)
+xf = fftfreq(N, 1 / SAMPLE_RATE)
+
+plt.plot(xf, np.abs(yf))
+plt.show()
