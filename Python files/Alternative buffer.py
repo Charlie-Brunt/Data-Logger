@@ -19,24 +19,24 @@ if not arduino_ports:
 if len(arduino_ports) > 1:
     warnings.warn('Multiple Arduinos found - using the first')
 
-port = serial.Serial(arduino_ports[0], 19200)
+port = serial.Serial(arduino_ports[0], 9600)
 
 # Parameters
-fft_window = 512 # 256
-sample_rate = 5000
+fft_window = 100 # 256
+sample_rate = 10000
 buffer_size = fft_window  # Number of bytes to read from serial
 frequencies = fftfreq(fft_window, 1/sample_rate)
 
 # Initial data
 data = port.read(buffer_size)
-samples = np.frombuffer(data, dtype=np.uint8)
 print(data)
-samples = samples - np.average(samples)
+samples = np.frombuffer(data, dtype=np.uint8)
 print(samples)
+samples = samples - np.average(samples)
 spectrum = fft(samples)
 amplitudes = np.abs(spectrum)
 
-
+"""
 # Create the Tkinter GUI window
 window = tk.Tk()
 window.title("Guitar Companion")
@@ -61,7 +61,7 @@ ax2.set_ylim(0)
 ax2.axes.yaxis.set_ticklabels([])
 
 plt.ion()
-plt.show(block=False)
+# plt.show(block=False)
 
 # Create a canvas widget to display the plot
 canvas = FigureCanvasTkAgg(fig, master = window)
@@ -112,3 +112,4 @@ window.after(1, update)
 
 # Run the Tkinter event loop
 window.mainloop()
+"""

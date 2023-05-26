@@ -9,7 +9,7 @@ import tkinter as tk
 # Configure the serial port
 port = serial.Serial('COM6', 19200)  # Replace 'COM1' with the appropriate serial port
 fftbuffer = 128
-sample_rate = 10000
+sample_rate = 5000
 buffer_size = fftbuffer * 5  # Number of bytes to read from serial
 
 # Create the Tkinter GUI window
