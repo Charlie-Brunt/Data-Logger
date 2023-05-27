@@ -7,7 +7,7 @@ volatile int resultNumber;
 
 void setup ()
   {
-  Serial.begin (115200);
+  Serial.begin (1000000);
   Serial.println ();
 
   // reset Timer 1
@@ -16,8 +16,8 @@ void setup ()
   TCNT1 = 0;
   TCCR1B = bit (CS11) | bit (WGM12);  // CTC, prescaler of 8
   TIMSK1 = bit (OCIE1B);
-  OCR1A = 124;    
-  OCR1B = 124;   // 20 uS - sampling frequency 50 kHz
+  OCR1A = 99;    
+  OCR1B = 99;   // 20 uS - sampling frequency 20 kHz
 
   ADCSRA =  bit (ADEN) | bit (ADIE) | bit (ADIF);   // turn ADC on, want interrupt on completion
   ADCSRA |= bit (ADPS2);  // Prescaler of 16
@@ -31,7 +31,7 @@ void setup ()
 // ADC complete ISR
 ISR (ADC_vect)
 {
-    results[resultNumber++] = ADCH;
+    results[resultNumber++] = ADCH; // Read left adjusted top 8 bits
     if(resultNumber == MAX_RESULTS)
     {
       ADCSRA = 0;  // turn off ADC
