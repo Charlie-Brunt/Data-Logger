@@ -61,8 +61,9 @@ font = {'family': 'sans-serif',
         }
 
 # Create a Figure object and subplots
-sns.set_style("ticks", {"axes.facecolor": ".2"})
+sns.set_style("ticks") # , {"axes.facecolor": ".2"}
 sns.set_context("paper")
+sns.set_palette("muted")
 fig = plt.figure()
 fig.patch.set_facecolor('xkcd:white')
 ax1 = fig.add_subplot(2, 1, 1)
