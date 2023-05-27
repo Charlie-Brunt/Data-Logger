@@ -1,10 +1,9 @@
-const int sampling_frequency = 16000;      // Number of samples per second
+const int sampling_frequency = 9000;      // Number of samples per second
 const int serialBaudRate = 19200;
-int sensorPin = A0;
+int sensorPin = A1;
 
 void setup() {
   Serial.begin(serialBaudRate);
-  // pinMode(A0,
 }
 
 void loop() {

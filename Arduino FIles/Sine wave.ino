@@ -1,8 +1,8 @@
 #include <math.h>
 
 const int amplitude = 127;     // Amplitude of the sine wave (0-255)
-const int frequency = 440;     // Frequency of the sine wave (Hz)
-const int sampling_frequency = 10000;      // Number of samples per second
+const int frequency = 1000;     // Frequency of the sine wave (Hz)
+const int sampling_frequency = 9000;      // Number of samples per second
 const int serialBaudRate = 19200;
 
 void setup() {
