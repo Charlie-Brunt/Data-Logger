@@ -26,12 +26,12 @@ port = serial.Serial("COM5", 1000000)
 time.sleep(1); # allow time for serial port to open
 
 # Parameters
-FFT_WINDOW = 512
+FFT_WINDOW = 1024
 SAMPLE_RATE = 20000
 BUFFER_SIZE = FFT_WINDOW  # Number of bytes to read from serial
 
 # Frequency and time axes for plotting
-frequencies = fftfreq(FFT_WINDOW, 1/SAMPLE_RATE)
+frequencies = fftfreq(FFT_WINDOW, 1/SAMPLE_RATE) # [:int(1+FFT_WINDOW/2)]
 times = np.arange(FFT_WINDOW)/SAMPLE_RATE
 
 # Hanning window
@@ -109,11 +109,11 @@ def update_graphs():
     canvas.flush_events()
 
     # Schedule the next update
-    root.after(5, update_graphs)
+    root.after(1, update_graphs)
 
 
 # Schedule the first update
-root.after(5, update_graphs)
+root.after(1, update_graphs)
 
 # Run the Tkinter event loop
 root.mainloop()
