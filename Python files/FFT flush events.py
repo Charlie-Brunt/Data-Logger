@@ -11,22 +11,22 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
 # Configure the serial port
-# arduino_ports = [
-#     p.device
-#     for p in serial.tools.list_ports.comports()
-#     if 'Arduino' in p.description
-# ]
-# if not arduino_ports:
-#     raise IOError("No Arduino found")
-# if len(arduino_ports) > 1:
-#     warnings.warn('Multiple Arduinos found - using the first')
+arduino_ports = [
+    p.device
+    for p in serial.tools.list_ports.comports()
+    if 'Arduino' in p.description
+]
+if not arduino_ports:
+    raise IOError("No Arduino found")
+if len(arduino_ports) > 1:
+    warnings.warn('Multiple Arduinos found - using the first')
 
-# port = serial.Serial(arduino_ports[0], 19200)
-port = serial.Serial("COM5", 1000000)
+port = serial.Serial(arduino_ports[0], 19200)
+# port = serial.Serial("COM5", 1000000)
 time.sleep(1); # allow time for serial port to open
 
 # Parameters
-FFT_WINDOW = 1024
+FFT_WINDOW = 512
 SAMPLE_RATE = 20000
 BUFFER_SIZE = FFT_WINDOW  # Number of bytes to read from serial
 
