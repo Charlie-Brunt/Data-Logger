@@ -1,37 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import serial
 import tkinter as tk
-import serial.tools.list_ports
+import seaborn as sns
 import warnings
 import time
-import seaborn as sns
+import serial
+import serial.tools.list_ports
 from scipy.fft import fft, fftfreq, fftshift
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-def connectToArduino(baudRate):
+def connectToArduino(BAUD_RATE, serial_number="95530343834351A0B091"):
     # Configure the serial port
-    arduino_ports = [
-        p.device
-        for p in serial.tools.list_ports.comports()
-        if 'Arduino' in p.description
-    ]
-    if not arduino_ports:
-        raise IOError("No Arduino found")
-    if len(arduino_ports) > 1:
-        warnings.warn('Multiple Arduinos found - using the first')
-
-    port = serial.Serial(arduino_ports[0], baudRate)
-    # port = serial.Serial("COM5", 1000000)
-    time.sleep(1); # allow time for serial port to open
-    return port
+    for pinfo in serial.tools.list_ports.comports():
+        if pinfo.serial_number == serial_number:
+            return serial.Serial(pinfo.device, BAUD_RATE)
+    raise IOError("No Arduino found")
 
 
 # Parameters
 CHUNK_SIZE = 2048
 SAMPLING_RATE = 8000
-BAUDRATE = 1000000
+BAUD_RATE = 1000000
 YLIM = 20000
 
 # Frequency and time axes for plotting
@@ -79,9 +69,10 @@ text = ax2.text(0, 0, '', va='center', fontdict=font)
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side="top",fill='both',expand=True)
 
-port = connectToArduino(BAUDRATE)
+port = connectToArduino(BAUD_RATE)
 
-def animate_graphs():
+
+def animate():
     # Update data
     bit_data = port.read(CHUNK_SIZE)
     data = np.frombuffer(bit_data, dtype=np.uint8)
@@ -105,7 +96,7 @@ def animate_graphs():
     canvas.flush_events()
 
     # Schedule the next update
-    root.after(1, animate_graphs)
+    root.after(1, animate)
 
 
 def close_window():
@@ -115,7 +106,7 @@ def close_window():
 root.protocol("WM_DELETE_WINDOW", close_window)
 
 # Schedule the first update
-root.after(1, animate_graphs)
+root.after(1, animate)
 
 # Run the Tkinter event loop
 root.mainloop()
