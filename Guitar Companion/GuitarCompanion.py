@@ -110,4 +110,3 @@ root.after(1, animate)
 
 # Run the Tkinter event loop
 root.mainloop()
-
