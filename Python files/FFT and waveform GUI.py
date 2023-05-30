@@ -26,7 +26,7 @@ time.sleep(1); # allow time for serial port to open
 
 # Parameters
 FFT_WINDOW = 512
-SAMPLE_RATE = 6000
+SAMPLE_RATE = 8000
 BUFFER_SIZE = FFT_WINDOW  # Number of bytes to read from serial
 frequencies = fftfreq(FFT_WINDOW, 1/SAMPLE_RATE)
 times = np.arange(FFT_WINDOW)/SAMPLE_RATE
