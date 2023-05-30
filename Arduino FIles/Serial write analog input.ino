@@ -1,6 +1,6 @@
 const byte adcPin = 0;  // A0
 
-const int MAX_RESULTS = 256;
+const int MAX_RESULTS = 1;
 
 volatile int results [MAX_RESULTS];
 volatile int resultNumber;
@@ -16,8 +16,8 @@ void setup ()
   TCNT1 = 0;
   TCCR1B = bit (CS11) | bit (WGM12);  // CTC, prescaler of 8
   TIMSK1 = bit (OCIE1B);
-  OCR1A = 99;    
-  OCR1B = 99;   // 20 uS - sampling frequency 20 kHz
+  OCR1A = 249;
+  OCR1B = 249;   // 20 uS - sampling frequency 6 kHz
 
   ADCSRA =  bit (ADEN) | bit (ADIE) | bit (ADIF);   // turn ADC on, want interrupt on completion
   ADCSRA |= bit (ADPS2);  // Prescaler of 16

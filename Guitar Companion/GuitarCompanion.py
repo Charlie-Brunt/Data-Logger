@@ -10,41 +10,43 @@ from scipy.fft import fft, fftfreq, fftshift
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 
-# Configure the serial port
-arduino_ports = [
-    p.device
-    for p in serial.tools.list_ports.comports()
-    if 'Arduino' in p.description
-]
-if not arduino_ports:
-    raise IOError("No Arduino found")
-if len(arduino_ports) > 1:
-    warnings.warn('Multiple Arduinos found - using the first')
+def connectToArduino():
+    # Configure the serial port
+    arduino_ports = [
+        p.device
+        for p in serial.tools.list_ports.comports()
+        if 'Arduino' in p.description
+    ]
+    if not arduino_ports:
+        raise IOError("No Arduino found")
+    if len(arduino_ports) > 1:
+        warnings.warn('Multiple Arduinos found - using the first')
 
-port = serial.Serial(arduino_ports[0], 1000000)
-# port = serial.Serial("COM5", 1000000)
-time.sleep(1); # allow time for serial port to open
+    port = serial.Serial(arduino_ports[0], 1000000)
+    # port = serial.Serial("COM5", 1000000)
+    time.sleep(1); # allow time for serial port to open
+    return port
+
 
 # Parameters
-FFT_WINDOW = 1024
-SAMPLE_RATE = 8000
-BUFFER_SIZE = FFT_WINDOW  # Number of bytes to read from serial
+CHUNK_SIZE = 1024
+SAMPLING_RATE = 8000
 
 # Frequency and time axes for plotting
-frequencies = fftfreq(FFT_WINDOW, 1/SAMPLE_RATE) # [:int(1+FFT_WINDOW/2)]
-times = np.arange(FFT_WINDOW)/SAMPLE_RATE
+frequencies = fftshift(fftfreq(CHUNK_SIZE, 1/SAMPLING_RATE))
+times = np.arange(CHUNK_SIZE)/SAMPLING_RATE
 
 # Hanning window
-window = 0.5 * (1 - np.cos(np.linspace(0, 2*np.pi, FFT_WINDOW, False)))
+window = 0.5 * (1 - np.cos(np.linspace(0, 2*np.pi, CHUNK_SIZE, False)))
 
 # Initial data
-data = port.read(BUFFER_SIZE)
-samples = np.frombuffer(data, dtype=np.uint8)
-# print(data)
-# print(samples)
-samples = samples - np.average(samples)
-spectrum = fft(samples * window)
-amplitudes = np.abs(spectrum)
+# data = port.read(CHUNK_SIZE)
+# samples = np.frombuffer(data, dtype=np.uint8)
+# # print(data)
+# # print(samples)
+# samples = samples - np.average(samples)
+# spectrum = fft(samples * window)
+# amplitudes = np.abs(spectrum)
 
 # Create the Tkinter GUI window
 root = tk.Tk()
@@ -66,14 +68,14 @@ sns.set_style("dark", {"axes.facecolor": ".1"}) #
 fig = plt.figure()
 # fig.patch.set_facecolor('xkcd:white')
 ax1 = fig.add_subplot(2, 1, 1)
-line1, = ax1.plot(times, samples, "aquamarine")
+line1, = ax1.plot(times, np.zeros(CHUNK_SIZE), "aquamarine")
 ax1.set_xlabel('Time (s)')
 ax1.set_ylabel('Amplitude')
-ax1.set_xlim(0, FFT_WINDOW/SAMPLE_RATE)
+ax1.set_xlim(0, CHUNK_SIZE/SAMPLING_RATE)
 ax1.set_ylim(-128,127)
 # ax1.axes.xaxis.set_ticklabels([])
 ax2 = fig.add_subplot(2, 1, 2)
-line2, = ax2.plot(fftshift(frequencies), fftshift(amplitudes), "aquamarine")
+line2, = ax2.plot(fftshift(frequencies), np.zeros(CHUNK_SIZE), "aquamarine")
 ax2.set_xlabel('Frequency (Hz)')
 ax2.set_ylabel('Amplitude')
 ax2.set_xlim(0, 2000)
@@ -85,20 +87,23 @@ text = ax2.text(0, 0, '', va='center', fontdict=font)
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().pack(side="top",fill='both',expand=True)
 
+port = connectToArduino()
 
-def update_graphs():
+def animate_graphs():
     # Update data
-    data = port.read(BUFFER_SIZE)
-    samples = np.frombuffer(data, dtype=np.uint8)
-    samples = samples - np.average(samples)
-    spectrum = fft(samples * window)
+    bit_data = port.read(CHUNK_SIZE)
+    data = np.frombuffer(bit_data, dtype=np.uint8)
+    data = data - np.average(data) # remove DC offset
+    # windowed_spectrum = fft(samples * window)
+    spectrum = fft(data)
     amplitudes = np.abs(spectrum)
+    psd = (spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real
 
     # Waveform
-    line1.set_ydata(samples)
+    line1.set_ydata(data)
 
     # Spectrum
-    peak_freq_index = np.argmax(amplitudes)
+    peak_freq_index = np.argmax(psd)
     peak_freq = frequencies[peak_freq_index]
     line2.set_ydata(fftshift(amplitudes))
     text.set_text('{:.2f} Hz'.format(peak_freq))
@@ -109,11 +114,18 @@ def update_graphs():
     canvas.flush_events()
 
     # Schedule the next update
-    root.after(1, update_graphs)
+    root.after(10, animate_graphs)
+
+
+def close_window():
+    root.destroy()
+
+root.protocol("WM_DELETE_WINDOW", close_window)
 
 
 # Schedule the first update
-root.after(1, update_graphs)
+root.after(10, animate_graphs)
 
 # Run the Tkinter event loop
 root.mainloop()
+
