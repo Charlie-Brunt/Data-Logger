@@ -5,10 +5,9 @@ import seaborn as sns
 import serial
 import serial.tools.list_ports
 import time
-import os
 from scipy.fft import fft, fftfreq, fftshift
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from BlitManager import BlitManager
+from Blitting import BlitManager
 
 
 def connectToArduino(BAUD_RATE, serial_number="95530343834351A0B091"):
@@ -44,10 +43,8 @@ root.title("Guitar Companion")
 width = root.winfo_screenwidth()
 height = root.winfo_screenheight()
 root.geometry("%dx%d" % (width, height))
-dirname = os.path.abspath(__file__)
-iconpath = os.path.join(dirname, '/icon.png')
-icon = tk.PhotoImage(file=iconpath)
-root.iconphoto(False, icon)
+# icon = tk.PhotoImage(file="icon.png")
+# root.iconphoto(False, icon)
 
 # Font dictionary
 font = {'family': 'sans-serif',
@@ -55,7 +52,7 @@ font = {'family': 'sans-serif',
         'weight': 'normal',
         'size': 8}
 
-# Seaborn styles
+# Create a Figure object and subplots
 sns.set_style("dark", {'axes.facecolor': '0.1',
                        'axes.grid': True,
                        'grid.linestyle': '-',
@@ -65,12 +62,9 @@ sns.set_style("dark", {'axes.facecolor': '0.1',
                        'ytick.color': 'white',
                        'axes.labelcolor': 'white'}
 )
-
-# Create a Figure object
+# sns.set_context("paper")
 fig = plt.figure()
 fig.patch.set_facecolor('.1')
-
-# Time domain plot setup
 ax1 = fig.add_subplot(2, 1, 1)
 line1, = ax1.plot(times, np.zeros(CHUNK_SIZE), "aquamarine")
 ax1.set_xlabel('Time (s)')
@@ -78,9 +72,7 @@ ax1.set_ylabel('Amplitude')
 ax1.set_xlim(0, CHUNK_SIZE/SAMPLING_RATE)
 ax1.set_ylim(-128,127)
 ax1.grid(axis="x")
-fr_number = ax1.text(0.001, 120, '', va='top', ha='left', fontdict=font)
 
-# Frequency spectrum plot setup
 ax2 = fig.add_subplot(2, 1, 2)
 line2, = ax2.plot(fftshift(frequencies), np.zeros(CHUNK_SIZE), color="aquamarine")
 ax2.set_xlabel('Frequency (Hz)')
@@ -96,6 +88,9 @@ for note in NOTES:
     ax2.text(f, 1.3*YLIM, note, ha="center", fontdict=font)
     ax2.text(f, 0.5, f, ha="center", fontdict=font)
 text = ax2.text(0, 0, '', va='center', fontdict=font)
+
+# add a frame number
+fr_number = ax1.text(0.001, 120, '', va='top', ha='left', fontdict=font)
 
 # Create a canvas widget to display the plot
 canvas = FigureCanvasTkAgg(fig, master=root)

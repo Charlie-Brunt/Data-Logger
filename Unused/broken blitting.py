@@ -20,11 +20,11 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 #     warnings.warn('Multiple Arduinos found - using the first')
 
 # port = serial.Serial(arduino_ports[0], 19200)
-port = serial.Serial("COM5", 19200)
+port = serial.Serial("COM5", 1000000)
 
 # Parameters
 FFT_WINDOW = 512 # 256
-SAMPLE_RATE = 5000
+SAMPLE_RATE = 8000
 BUFFER_SIZE = FFT_WINDOW  # Number of bytes to read from serial
 frequencies = fftfreq(FFT_WINDOW, 1/SAMPLE_RATE)
 
@@ -93,12 +93,13 @@ def update():
 
     fig.canvas.restore_region(bg1)
     ax1.draw_artist(ln1)
-    canvas.blit(ax1.bbox)
+    
 
     fig.canvas.restore_region(bg2)
     ax2.draw_artist(ln2)
     # if max(amplitudes) > 0.1:
     #     ax2.draw_artist(annot_max(frequencies, amplitudes, ax=ax2))
+    canvas.blit(ax1.bbox)
     canvas.blit(ax2.bbox)
 
     canvas.flush_events()
