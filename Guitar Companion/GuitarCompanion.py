@@ -5,7 +5,7 @@ import seaborn as sns
 import serial
 import serial.tools.list_ports
 import time
-import os
+import tksvg
 from scipy.fft import fft, fftfreq, fftshift
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from BlitManager import BlitManager
@@ -17,6 +17,42 @@ def connectToArduino(BAUD_RATE, serial_number="95530343834351A0B091"):
         if pinfo.serial_number == serial_number:
             return serial.Serial(pinfo.device, BAUD_RATE)
     raise IOError("No Arduino found")
+
+
+def animate():
+    start_time = time.time()
+
+    # Update data
+    bit_data = port.read(CHUNK_SIZE)
+    data = np.frombuffer(bit_data, dtype=np.uint8)
+    data = data - np.average(data) # remove DC offset
+    spectrum = fft(data)
+    # amplitudes = np.abs(spectrum)
+    psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
+
+    # Waveform
+    line1.set_ydata(data)
+
+    # Spectrum
+    peak_freq_index = np.argmax(psd)
+    peak_freq = frequencies[peak_freq_index]
+    line2.set_ydata(fftshift(psd))
+    text.set_text('{:.2f} Hz'.format(peak_freq))
+    text.set_position((peak_freq + 10, min((YLIM - 0.5*YLIM, psd[peak_freq_index]))))
+    try:
+        fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
+    except:
+        pass
+
+    # Update the canvas
+    bm.update()
+
+    # Schedule the next update
+    root.after(5, animate)
+
+
+def close_window():
+    exit()
 
 
 # Parameters
@@ -35,19 +71,23 @@ NOTES = {"E2": 82.41,
 frequencies = fftfreq(CHUNK_SIZE, 1/SAMPLING_RATE)
 times = np.arange(CHUNK_SIZE)/SAMPLING_RATE
 
-# Hanning window
-window = 0.5 * (1 - np.cos(np.linspace(0, 2*np.pi, CHUNK_SIZE, False)))
-
 # Create the Tkinter GUI window
 root = tk.Tk()
 root.title("Guitar Companion")
-width = root.winfo_screenwidth()
-height = root.winfo_screenheight()
-root.geometry("%dx%d" % (width, height))
-dirname = os.getcwd()
-iconpath = os.path.join(dirname, '/icon.png')
-icon = tk.PhotoImage(file=iconpath)
+root.state('zoomed')
+icon = tk.PhotoImage(file="Assets/icon.png")
 root.iconphoto(False, icon)
+root.protocol("WM_DELETE_WINDOW", close_window)
+
+frame1 = tk.Frame(master=root, width=200, height=100, bg="#1a1a1a")
+frame1.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+
+frame2 = tk.Frame(master=root, width=100, bg="#1a1a1a")
+frame2.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
+
+svg_image = tksvg.SvgImage(file="Assets/off.svg")
+pedal_btn = tk.Button(master=frame2, image=svg_image)
+pedal_btn.pack(expand=True)
 
 # Font dictionary
 font = {'family': 'sans-serif',
@@ -98,7 +138,7 @@ for note in NOTES:
 text = ax2.text(0, 0, '', va='center', fontdict=font)
 
 # Create a canvas widget to display the plot
-canvas = FigureCanvasTkAgg(fig, master=root)
+canvas = FigureCanvasTkAgg(fig, master=frame1)
 canvas.get_tk_widget().pack(side="top",fill='both',expand=True)
 
 # Open Arduino COM port
@@ -106,45 +146,6 @@ port = connectToArduino(BAUD_RATE)
 
 # Create BlitManager object
 bm = BlitManager(canvas, [line1, line2, text, fr_number])
-
-
-def animate():
-    start_time = time.time()
-
-    # Update data
-    bit_data = port.read(CHUNK_SIZE)
-    data = np.frombuffer(bit_data, dtype=np.uint8)
-    data = data - np.average(data) # remove DC offset
-    spectrum = fft(data)
-    # amplitudes = np.abs(spectrum)
-    psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
-
-    # Waveform
-    line1.set_ydata(data)
-
-    # Spectrum
-    peak_freq_index = np.argmax(psd)
-    peak_freq = frequencies[peak_freq_index]
-    line2.set_ydata(fftshift(psd))
-    text.set_text('{:.2f} Hz'.format(peak_freq))
-    text.set_position((peak_freq + 10, min((YLIM - 0.5*YLIM, psd[peak_freq_index]))))
-    try:
-        fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
-    except:
-        pass
-
-    # Update the canvas
-    bm.update()
-
-    # Schedule the next update
-    root.after(5, animate)
-
-
-def close_window():
-    exit()
-
-
-root.protocol("WM_DELETE_WINDOW", close_window)
 
 # Schedule the first update
 root.after(5, animate)

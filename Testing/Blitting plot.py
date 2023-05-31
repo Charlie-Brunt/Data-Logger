@@ -7,7 +7,7 @@ import serial.tools.list_ports
 import time
 from scipy.fft import fft, fftfreq, fftshift
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from Blitting import BlitManager
+from BlitManager import BlitManager
 
 
 def connectToArduino(BAUD_RATE, serial_number="95530343834351A0B091"):
