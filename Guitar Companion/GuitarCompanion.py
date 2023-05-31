@@ -9,10 +9,13 @@ import tksvg
 from scipy.fft import fft, fftfreq, fftshift
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from BlitManager import BlitManager
-
+from tkinter import ttk
+from ttkthemes import ThemedTk
 
 def connectToArduino(BAUD_RATE, serial_number="95530343834351A0B091"):
-    # Configure the serial port
+    """
+    Configure the serial port
+    """
     for pinfo in serial.tools.list_ports.comports():
         if pinfo.serial_number == serial_number:
             return serial.Serial(pinfo.device, BAUD_RATE)
@@ -20,6 +23,9 @@ def connectToArduino(BAUD_RATE, serial_number="95530343834351A0B091"):
 
 
 def animate():
+    """
+    Function to update plotted data on graphs
+    """
     start_time = time.time()
 
     # Update data
@@ -60,34 +66,41 @@ CHUNK_SIZE = 2048
 SAMPLING_RATE = 8000
 BAUD_RATE = 1000000
 YLIM = 1000000 # 20000
-NOTES = {"E2": 82.41,
+NOTES = {"E2": 82.4,
          "A2": 110.0,
-         "D3": 146.83,
+         "D3": 146.8,
          "G3": 196.0,
-         "B3": 246.94,
-         "E4": 329.63}
+         "B3": 246.9,
+         "E4": 329.6}
 
 # Frequency and time axes for plotting
 frequencies = fftfreq(CHUNK_SIZE, 1/SAMPLING_RATE)
 times = np.arange(CHUNK_SIZE)/SAMPLING_RATE
 
 # Create the Tkinter GUI window
-root = tk.Tk()
+# root = tk.Tk()
+root = ThemedTk(theme='yaru')
 root.title("Guitar Companion")
+root.geometry("1280x720")
 root.state('zoomed')
 icon = tk.PhotoImage(file="Assets/icon.png")
 root.iconphoto(False, icon)
 root.protocol("WM_DELETE_WINDOW", close_window)
 
-frame1 = tk.Frame(master=root, width=200, height=100, bg="#1a1a1a")
+
+frame1 = tk.Frame(master=root, width=200, height=100) #bg="#1a1a1a", bd="5", relief="solid"
 frame1.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
 
-frame2 = tk.Frame(master=root, width=100, bg="#1a1a1a")
+frame2 = tk.Frame(master=root, width=100) # , bg="#1a1a1a"
 frame2.pack(fill=tk.BOTH, side=tk.LEFT, expand=True)
 
-svg_image = tksvg.SvgImage(file="Assets/off.svg")
-pedal_btn = tk.Button(master=frame2, image=svg_image)
+pedalimg = tk.PhotoImage(file="Assets/pedal.png")
+pedal_btn = ttk.Button(master=frame2, image=pedalimg)
 pedal_btn.pack(expand=True)
+
+# Create a Figure object
+fig = plt.figure()
+fig.patch.set_facecolor('.1')
 
 # Font dictionary
 font = {'family': 'sans-serif',
@@ -106,10 +119,6 @@ sns.set_style("dark", {'axes.facecolor': '0.1',
                        'axes.labelcolor': 'white'}
 )
 
-# Create a Figure object
-fig = plt.figure()
-fig.patch.set_facecolor('.1')
-
 # Time domain plot setup
 ax1 = fig.add_subplot(2, 1, 1)
 line1, = ax1.plot(times, np.zeros(CHUNK_SIZE), "aquamarine")
@@ -127,14 +136,14 @@ ax2.set_xlabel('Frequency (Hz)')
 ax2.set_ylabel('Amplitude')
 ax2.set_yscale("log")
 ax2.set_xscale("log")
-ax2.set_xlim(50, 1000)
+ax2.set_xlim(30, 1000)
 ax2.set_ylim(1, YLIM)
 ax2.grid(axis="x")
 for note in NOTES:
     f = NOTES[note]
-    ax2.axvline(NOTES[note], color ='white', linewidth=1)
-    ax2.text(f, 1.3*YLIM, note, ha="center", fontdict=font)
-    ax2.text(f, 0.5, f, ha="center", fontdict=font)
+    ax2.axvline(NOTES[note], ymin=0.05, ymax=0.95, color ='white', linewidth=1)
+    ax2.text(f, 0.55*YLIM, note, ha="center", fontdict=font)
+    ax2.text(f, 1.1, f, ha="center", fontdict=font)
 text = ax2.text(0, 0, '', va='center', fontdict=font)
 
 # Create a canvas widget to display the plot
