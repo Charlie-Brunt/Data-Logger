@@ -84,7 +84,7 @@ def close_window():
 
 def toggle_distortion():
     """
-    Toggle distortion effect and change appearance of button
+    Toggle distortion effect, change appearance of button and signal a state change to Arduino
     """
     global pedalimg
     global distortion
@@ -92,20 +92,29 @@ def toggle_distortion():
     if distortion == True:
         pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png").resize((300,480)))
         pedal_btn.config(image=pedalimg)
+        try:
+            port.write(1)
+        except:
+            pass
     else:
         pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((300,480)))
         pedal_btn.config(image=pedalimg)
+        try:
+            port.write(0)
+        except:
+            pass
     print(distortion)
+    
 
 
-def tune(freq, tuning):
+def tune(peak_frequency, tuning):
     """
     Find closest note and give tuning instructions
     """
-    closest_note, note_freq = min(tuning.items(), key=lambda x: abs(freq - x[1]))
-    if abs(freq - note_freq) < 1.5:
+    closest_note, note_freq = min(tuning.items(), key=lambda x: abs(peak_frequency - x[1]))
+    if abs(peak_frequency - note_freq) < 1.5:
         instruction = "In Tune"
-    elif freq - note_freq < 0:
+    elif peak_frequency - note_freq < 0:
         instruction = "Tune Up"
     else:
         instruction = "Tune Down"
@@ -131,34 +140,50 @@ SAMPLING_RATE = 8000
 BAUD_RATE = 1000000
 YLIM = 1000000 # 20000
 
-# Tunings
-STANDARD_TUNING = {"E2": 82.4,
-         "A2": 110.0,
-         "D3": 146.8,
-         "G3": 196.0,
-         "B3": 246.9,
-         "E4": 329.6}
-DROP_D = {"D2": 73.4,
-         "A2": 110.0,
-         "D3": 146.8,
-         "G3": 196.0,
-         "B3": 246.9,
-         "E4": 329.6}
-HALF_STEP = {"Eb2": 77.8,
-         "Ab2": 103.8,
-         "Db3": 138.6,
-         "Gb3": 185.0,
-         "Bb3": 233.1,
-         "Eb4": 311.1}
-FULL_STEP = {"D2": 73.4,
-         "G2": 98,
-         "C3": 130.8,
-         "F3": 174.6,
-         "A3": 220,
-         "D4": 293.7}
+# Tunings from https://pages.mtu.edu/~suits/notefreqs.html
+STANDARD = {
+    "E2": 82.4,
+    "A2": 110.0,
+    "D3": 146.8,
+    "G3": 196.0,
+    "B3": 246.9,
+    "E4": 329.6,
+}
+DROP_D = {
+    "D2": 73.4,
+    "A2": 110.0,
+    "D3": 146.8,
+    "G3": 196.0,
+    "B3": 246.9,
+    "E4": 329.6,
+}
+E_FLAT_STANDARD = {
+    "Eb2": 77.8,
+    "Ab2": 103.8,
+    "Db3": 138.6,
+    "Gb3": 185.0,
+    "Bb3": 233.1,
+    "Eb4": 311.1,
+}
+D_STANDARD = {
+    "D2": 73.4,
+    "G2": 98,
+    "C3": 130.8,
+    "F3": 174.6,
+    "A3": 220,
+    "D4": 293.7,
+}
+C_SHARP_STANDARD = {
+    "C#2": 69.3,
+    "F#2": 92.5,
+    "B2": 123.5,
+    "E3": 164.8,
+    "G#3": 207.7,
+    "C#4": 277.2,
+}
 
-tunings = [STANDARD_TUNING, DROP_D, HALF_STEP, FULL_STEP]
-tuning = STANDARD_TUNING
+tunings = [STANDARD, DROP_D, E_FLAT_STANDARD, D_STANDARD, C_SHARP_STANDARD]
+tuning = STANDARD
 
 # Frequency and time axes for plotting
 frequencies = fftfreq(CHUNK_SIZE, 1/SAMPLING_RATE)
@@ -174,52 +199,63 @@ root.iconbitmap("Assets/icon.ico")
 root.protocol("WM_DELETE_WINDOW", close_window)
 
 # Pedal frame / button
-pedal_frame = tk.Frame(master=root, width=100, bg="#1a1a1a") # , bg="#1a1a1a"
+pedal_frame = tk.Frame(master=root, width=400, bg="#1a1a1a") # , bg="#1a1a1a"
 pedal_frame.pack(fill=tk.BOTH, side=tk.RIGHT, padx=5, pady=5)
 pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((300,480)))
 pedal_btn = tk.Button(master=pedal_frame, image=pedalimg, command=toggle_distortion, bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
-pedal_btn.pack(expand=True, padx=20, pady=20)
+pedal_btn.pack(expand=True, padx=40, pady=40)
 
-# radio button frame
+# Tuning radio buttons
 radio_frame = tk.Frame(master=root, bg="#1a1a1a")
 radio_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=5, pady=5)
 var = tk.IntVar()
-std_tuning = customtkinter.CTkRadioButton(radio_frame, text="E-A-D-G-B-E", variable=var, value=0,
+std = customtkinter.CTkRadioButton(radio_frame, text="Standard", variable=var, value=0,
                   command=select_tuning) # .grid(row=0, column=1)
-std_tuning.pack(anchor=tk.W, side=tk.LEFT, ipadx=20)
-drop_d_tuning = customtkinter.CTkRadioButton(radio_frame, text="D-A-D-G-B-E", variable=var, value=1,
+std.pack(anchor=tk.W, side=tk.LEFT, padx=40)
+drop_d = customtkinter.CTkRadioButton(radio_frame, text="Drop D", variable=var, value=1,
                   command=select_tuning) # .grid(row=0, column=2)
-drop_d_tuning.pack(anchor=tk.W, side=tk.LEFT, ipadx=20)
-half_step_tuning = customtkinter.CTkRadioButton(radio_frame, text="Eb-Ab-Db-Gb-Bb-Eb", variable=var, value=2,
+drop_d.pack(anchor=tk.W, side=tk.LEFT, padx=40)
+eb_std = customtkinter.CTkRadioButton(radio_frame, text="Eb Standard", variable=var, value=2,
                   command=select_tuning) # .grid(row=0, column=3)
-half_step_tuning.pack(anchor=tk.W, side=tk.LEFT, ipadx=20)
-full_step_tuning = customtkinter.CTkRadioButton(radio_frame, text="D-G-C-F-A-D", variable=var, value=3,
+eb_std.pack(anchor=tk.W, side=tk.LEFT, padx=40)
+d_std = customtkinter.CTkRadioButton(radio_frame, text="D Standard", variable=var, value=3,
                   command=select_tuning) # .grid(row=0, column=4)
-full_step_tuning.pack(anchor=tk.W, side=tk.LEFT)
+d_std.pack(anchor=tk.W, side=tk.LEFT, padx=40)
+csharp_std = customtkinter.CTkRadioButton(radio_frame, text="C# Standard", variable=var, value=4,
+                  command=select_tuning) # .grid(row=0, column=4)
+csharp_std.pack(anchor=tk.W, side=tk.LEFT, padx=40)
 
 # Graph frame
-graph_frame = tk.Frame(master=root, width=200, height=100) #bg="#1a1a1a", bd="5", relief="solid"
+graph_frame = tk.Frame(master=root) #bg="#1a1a1a", bd="5", relief="solid"
 graph_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=5, pady=5, expand=True)
+
+# Tuner frame
+tuner_frame = tk.Frame(master=root, bg="#1a1a1a")
+tuner_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=5, pady=5, expand=True)
 
 # Create a Figure object
 fig = plt.figure()
 fig.patch.set_facecolor('.1')
 
 # Font dictionary
-font = {'family': 'sans-serif',
-        'color':  'white',
-        'weight': 'normal',
-        'size': 8}
+font = {
+    'family': 'sans-serif',
+    'color':  'white',
+    'weight': 'normal',
+    'size': 8
+}
 
 # Seaborn styles
-sns.set_style("dark", {'axes.facecolor': '0.1',
-                       'axes.grid': True,
-                       'grid.linestyle': '-',
-                       'grid.color': '0.3',
-                       'text.color': 'white',
-                       'xtick.color': 'white',
-                       'ytick.color': 'white',
-                       'axes.labelcolor': 'white'}
+sns.set_style("dark", {
+    'axes.facecolor': '0.1',
+    'axes.grid': True,
+    'grid.linestyle': '-',
+    'grid.color': '0.3',
+    'text.color': 'white',
+    'xtick.color': 'white',
+    'ytick.color': 'white',
+    'axes.labelcolor': 'white'
+    }
 )
 
 # Time domain plot setup
