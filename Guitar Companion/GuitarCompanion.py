@@ -24,7 +24,7 @@ def connect_to_arduino(BAUD_RATE, serial_number="95530343834351A0B091"):
     for pinfo in serial.tools.list_ports.comports():
         if pinfo.serial_number == serial_number:
             return serial.Serial(pinfo.device, BAUD_RATE)
-    raise IOError("No Arduino found")
+    # raise IOError("No Arduino found")
 
 
 def animate():
@@ -34,27 +34,27 @@ def animate():
     start_time = time.time()
 
     # Update data
-    bit_data = port.read(CHUNK_SIZE)
-    data = np.frombuffer(bit_data, dtype=np.uint8)
-    data = data - np.average(data) # remove DC offset
-    spectrum = fft(data)
-    # amplitudes = np.abs(spectrum)
-    psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
-
-    # Waveform
-    line1.set_ydata(data)
-
-    # Spectrum
-    peak_freq_index = np.argmax(psd)
-    peak_freq = frequencies[peak_freq_index]
-    line2.set_ydata(fftshift(psd))
-    pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-    pklabel.set_position((peak_freq + 10, min((YLIM - 0.5*YLIM, psd[peak_freq_index]))))
     try:
+        bit_data = port.read(CHUNK_SIZE)
+        data = np.frombuffer(bit_data, dtype=np.uint8)
+        data = data - np.average(data) # remove DC offset
+        spectrum = fft(data)
+        # amplitudes = np.abs(spectrum)
+        psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
+        
+        # Waveform
+        line1.set_ydata(data)
+
+        # Spectrum
+        peak_freq_index = np.argmax(psd)
+        peak_freq = frequencies[peak_freq_index]
+        line2.set_ydata(fftshift(psd))
+        pklabel.set_text('{:.2f} Hz'.format(peak_freq))
+        pklabel.set_position((peak_freq + 10, min((YLIM - 0.5*YLIM, psd[peak_freq_index]))))
         fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
     except:
         pass
-    
+
     # Update tuning lines
     global switch_tuning
     if switch_tuning == True:
@@ -265,6 +265,7 @@ port = connect_to_arduino(BAUD_RATE)
 
 # Create BlitManager object
 bm = BlitManager(canvas, animated_artists)
+canvas.draw()
 
 # Schedule the first update
 root.after(5, animate)
