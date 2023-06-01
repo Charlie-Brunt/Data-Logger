@@ -1,5 +1,7 @@
 """
-Guitar Companion app
+Guitar Companion App
+
+Author: Charlie Brunt
 
 """
 import numpy as np
