@@ -119,7 +119,6 @@ def select_tuning():
    print(tuning)
 
 
-
 # global variables
 distortion = False
 switch_tuning = False
