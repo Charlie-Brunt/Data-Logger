@@ -44,16 +44,17 @@ def animate():
         # amplitudes = np.abs(spectrum)
         psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
         
-        # Waveform
-        line1.set_ydata(data)
+        if pause == False:
+            # Waveform
+            line1.set_ydata(data)
 
-        # Spectrum
-        peak_freq_index = np.argmax(psd)
-        peak_freq = frequencies[peak_freq_index]
-        line2.set_ydata(fftshift(psd))
-        pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-        pklabel.set_position((peak_freq + 10, min((YLIM - 0.5*YLIM, psd[peak_freq_index]))))
-        fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
+            # Spectrum
+            peak_freq_index = np.argmax(psd)
+            peak_freq = frequencies[peak_freq_index]
+            line2.set_ydata(fftshift(psd))
+            pklabel.set_text('{:.2f} Hz'.format(peak_freq))
+            pklabel.set_position((peak_freq + 10, min((YLIM - 0.5*YLIM, psd[peak_freq_index]))))
+            fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
     except:
         pass
 
@@ -88,16 +89,16 @@ def toggle_distortion():
     """
     global pedalimg
     global distortion
-    distortion = not(distortion) 
+    distortion = not distortion
     if distortion == True:
-        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png").resize((300,480)))
+        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png")) # .resize((300,480))
         pedal_btn.config(image=pedalimg)
         try:
             port.write(1)
         except:
             pass
     else:
-        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((300,480)))
+        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png")) # .resize((300,480))
         pedal_btn.config(image=pedalimg)
         try:
             port.write(0)
@@ -130,9 +131,14 @@ def select_tuning():
    print(tuning)
 
 
+def pause_button():
+    global pause
+    pause = not pause
+
 # global variables
 distortion = False
 switch_tuning = False
+pause = False
 
 # Parameters
 CHUNK_SIZE = 1024
@@ -197,13 +203,14 @@ root.geometry("1280x720")
 root.state('zoomed')
 root.iconbitmap("Assets/icon.ico")
 root.protocol("WM_DELETE_WINDOW", close_window)
+root.configure(background="white")
 
 # Pedal frame / button
 pedal_frame = tk.Frame(master=root, width=400, bg="#1a1a1a") # , bg="#1a1a1a"
 pedal_frame.pack(fill=tk.BOTH, side=tk.RIGHT, padx=5, pady=5)
-pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((300,480)))
+pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png")) # .resize((300,480))
 pedal_btn = tk.Button(master=pedal_frame, image=pedalimg, command=toggle_distortion, bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
-pedal_btn.pack(expand=True, padx=40, pady=40)
+pedal_btn.pack(expand=True, padx=20, pady=20)
 
 # Tuning radio buttons
 radio_frame = tk.Frame(master=root, bg="#1a1a1a")
@@ -232,6 +239,8 @@ graph_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=5, pady=5, expand=True)
 # Tuner frame
 tuner_frame = tk.Frame(master=root, bg="#1a1a1a")
 tuner_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=5, pady=5, expand=True)
+note_frame = tk.Frame(master=tuner_frame, bg="white", height=100, width=200)
+note_frame.pack(fill=tk.BOTH, side=tk.LEFT, padx=20, pady=20)
 
 # Create a Figure object
 fig = plt.figure()
@@ -260,7 +269,7 @@ sns.set_style("dark", {
 
 # Time domain plot setup
 ax1 = fig.add_subplot(2, 1, 1)
-line1, = ax1.plot(times, np.zeros(CHUNK_SIZE), "aquamarine")
+line1, = ax1.plot(times, np.zeros(CHUNK_SIZE), "#7951FF")
 ax1.set_xlabel('Time (s)')
 ax1.set_ylabel('Amplitude')
 ax1.set_xlim(0, CHUNK_SIZE/SAMPLING_RATE)
@@ -270,7 +279,7 @@ fr_number = ax1.text(0.001, 120, '', va='top', ha='left', fontdict=font)
 
 # Frequency spectrum plot setup
 ax2 = fig.add_subplot(2, 1, 2)
-line2, = ax2.plot(fftshift(frequencies), np.ones(CHUNK_SIZE), color="aquamarine")
+line2, = ax2.plot(fftshift(frequencies), np.ones(CHUNK_SIZE), color="#7951FF")
 ax2.set_xlabel('Frequency (Hz)')
 ax2.set_ylabel('Amplitude')
 ax2.set_yscale("log")
@@ -287,9 +296,9 @@ freq_labels = []
 
 for note in tuning:
     f = tuning[note]
-    note_lines.append(ax2.axvline(f, ymin=0.05, ymax=0.95, color ='white', linewidth=1))
-    note_labels.append(ax2.text(f, 0.55*YLIM, note, ha="center", fontdict=font))
-    freq_labels.append(ax2.text(f, 1.1, f, ha="center", fontdict=font))
+    note_lines.append(ax2.axvline(f, ymin=0.06, ymax=0.94, color ='white', linewidth=1))
+    note_labels.append(ax2.text(f, 0.5*YLIM, note, ha="center", fontdict=font))
+    freq_labels.append(ax2.text(f, 1.2, f, ha="center", fontdict=font))
 
 animated_artists = [line1, line2, pklabel, fr_number] + note_lines + note_labels + freq_labels
 
