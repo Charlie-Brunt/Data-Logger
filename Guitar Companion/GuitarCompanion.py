@@ -59,26 +59,26 @@ def animate():
     # amplitudes = np.abs(spectrum)
     psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
     
-    if pause == False:
-        # Waveform
-        line1.set_ydata(data)
+    # Waveform
+    line1.set_ydata(data)
 
-        # Spectrum
-        peak, peak_freq = find_fundamental(psd)
-        line2.set_ydata(fftshift(psd))
-        pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-        if peak > 10:
-            pklabel.set_position((max(peak_freq*1.1, 40), min((YLIM - 0.5*YLIM, peak))))
-        else:
-            pklabel.set_position((32, 3))
-        try:
-            fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
-        except:
-            fr_number.set_text("FPS: 0.00")
+    # Spectrum
+    peak, peak_freq = find_fundamental(psd)
+    line2.set_ydata(fftshift(psd))
+    pklabel.set_text('{:.2f} Hz'.format(peak_freq))
+    if peak > 10:
+        pklabel.set_position((max(peak_freq*1.1, 40), min((YLIM - 0.5*YLIM, peak))))
+    else:
+        pklabel.set_position((32, 3))
+
+    try:
+        fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
+    except:
+        fr_number.set_text("FPS: 0.00")
 
     # Update tuning lines
     global switch_tuning
-    if switch_tuning == True:
+    if switch_tuning:
         switch_tuning = False
         i = 0
         for note in tuning:
@@ -94,7 +94,9 @@ def animate():
     bm.update()
 
     # Tuning algorithm
+
     tune(peak_freq, peak, tuning)
+
 
     # Schedule the next update
     root.after(5, animate)
@@ -129,9 +131,12 @@ def toggle_distortion():
     
 
 def find_fundamental(psd):
-    # peak_freq_index = np.argmax(psd)
-    # peak = psd[peak_freq_index]
     peaks, _ = find_peaks(psd, threshold=1000)
+    if peaks.size == 0:
+        peak_freq_index = np.argmax(psd)
+        peak = psd[peak_freq_index]
+        peak_freq = frequencies[peak_freq_index]
+        return peak, peak_freq
     fundamental_index = peaks[0]
     fundamental_peak = psd[fundamental_index]
     fundamental_frequency = frequencies[fundamental_index]
@@ -166,7 +171,6 @@ def tune(peak_frequency, peak, tuning):
             tuner_instruction.config(image=downimg)
             tuner_instruction.image = downimg
     else:
-        noteimg = ImageTk.PhotoImage(Image.open("Assets/note.png").resize((200,200)))
         tuner_instruction.config(image=noteimg)
         tuner_instruction.image = noteimg
         notevar.set("-")
@@ -177,12 +181,12 @@ def tune(peak_frequency, peak, tuning):
 
 
 def select_tuning():
-   global tuning
-   global switch_tuning
-   switch_tuning = True
-   selection = var.get()
-   tuning = tunings[selection]
-   print(tuning)
+    global tuning
+    global switch_tuning
+    switch_tuning = True
+    selection = var.get()
+    tuning = tunings[selection]
+    print(tuning)
 
 
 def pause_button():

@@ -1,7 +1,8 @@
 {
-    "board": "arduino:avr:uno",
+    "board": "arduino:megaavr:uno2018",
     "programmer": "avrisp",
     "port": "COM6",
-    "sketch": "Arduino FIles\\Sine wave.ino",
-    "output": "../ArduinoOutput"
+    "sketch": "Arduino\\tuner_firmware\\tuner_firmware.ino",
+    "output": "../ArduinoOutput",
+    "configuration": "mode=on"
 }

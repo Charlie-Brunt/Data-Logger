@@ -1,4 +1,4 @@
-#define distortionPin 1;#
+#define distortionPin 1;
 #define LEDPin 2;
 
 const byte adcPin = 0;  // A0
@@ -20,7 +20,7 @@ void setup ()
   TCCR1B = bit (CS11) | bit (WGM12);  // CTC, prescaler of 8
   TIMSK1 = bit (OCIE1B);
   OCR1A = 249;
-  OCR1B = 249;   // 20 uS - sampling frequency 6 kHz
+  OCR1B = 249;   // 20 uS - sampling frequency 8 kHz
 
   ADCSRA =  bit (ADEN) | bit (ADIE) | bit (ADIF);   // turn ADC on, want interrupt on completion
   ADCSRA |= bit (ADPS2);  // Prescaler of 16

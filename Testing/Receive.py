@@ -1,7 +1,7 @@
 import serial
 
 # Configure the serial port
-port = serial.Serial('COM5', 1000000)  # Replace 'COM1' with the appropriate serial port
+port = serial.Serial('COM6', 115200)  # Replace 'COM1' with the appropriate serial port
 
 # Create a buffer to store the received data
 buffer_size = 512
