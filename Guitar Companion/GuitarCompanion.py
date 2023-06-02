@@ -26,11 +26,11 @@ switch_tuning = False
 pause = False
 
 # Parameters
-CHUNK_SIZE = 1024
+CHUNK_SIZE = 2048
 SAMPLING_RATE = 8000
 BAUD_RATE = 1000000
 YLIM = 1000000 # 20000
-THRESHOLD = 10
+THRESHOLD = 1000
 
 
 def connect_to_arduino(BAUD_RATE, serial_number="95530343834351A0B091"):
@@ -68,7 +68,10 @@ def animate():
             peak = psd[peak_freq_index]
             line2.set_ydata(fftshift(psd))
             pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-            pklabel.set_position((max(peak_freq*1.1, 40), min((YLIM - 0.5*YLIM, peak))))
+            if peak > 10:
+                pklabel.set_position((max(peak_freq*1.1, 40), min((YLIM - 0.5*YLIM, peak))))
+            else:
+                pklabel.set_position((32, 3))
             fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
     except:
         pass
