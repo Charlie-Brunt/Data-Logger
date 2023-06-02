@@ -114,17 +114,17 @@ def toggle_distortion():
     global distortion
     distortion = not distortion
     if distortion == True:
-        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png")) # .resize((300,480))
+        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png").resize((320,512))) # .resize((320,512))
         pedal_btn.config(image=pedalimg)
         try:
             port.write(1)
         except:
             pass
     else:
-        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png")) # .resize((300,480))
+        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((320,512))) # .resize((320,512))
         pedal_btn.config(image=pedalimg)
         try:
-            port.write(0)
+            port.write(2)
         except:
             pass
     print(distortion)
@@ -177,8 +177,6 @@ def tune(peak_frequency, peak, tuning):
         tunervar.set(" ")
         note_frame.configure(border_color="#1a1a1a")
         
-    
-
 
 def select_tuning():
     global tuning
@@ -189,9 +187,8 @@ def select_tuning():
     print(tuning)
 
 
-def pause_button():
-    global pause
-    pause = not pause
+def toggle_auto():
+    print("switch toggled, current value:", switch_var.get())
 
 
 # Tunings from https://pages.mtu.edu/~suits/notefreqs.html
@@ -252,12 +249,17 @@ root.iconbitmap("Assets/icon.ico")
 root.protocol("WM_DELETE_WINDOW", close_window)
 root.configure(background="white")
 
-# Pedal frame / button
-pedal_frame = customtkinter.CTkFrame(master=root, width=400, fg_color="#1a1a1a") # , bg="#1a1a1a"
-pedal_frame.pack(fill=tk.BOTH, side=tk.RIGHT, padx=8, pady=8)
-pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png")) # .resize((300,480))
-pedal_btn = tk.Button(master=pedal_frame, image=pedalimg, command=toggle_distortion, bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
-pedal_btn.pack(expand=True, padx=20, pady=20)
+# Effects frame / button
+effects_frame = customtkinter.CTkFrame(master=root, width=400, fg_color="#1a1a1a") # , bg="#1a1a1a"
+effects_frame.pack(fill=tk.BOTH, side=tk.RIGHT, padx=8, pady=8)
+effects_frame.propagate(False)
+# effects_title = tk.Label(master=effects_frame, text="Effects", font=("sans-serif", 40), 
+#                          bg="#1a1a1a", fg="white", anchor="nw")
+# effects_title.pack(side=tk.TOP)
+pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((320,512))) # .resize((320,512))
+pedal_btn = tk.Button(master=effects_frame, image=pedalimg, command=toggle_distortion, 
+                      bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
+pedal_btn.pack(expand=True, padx=20)
 
 # Tuning radio buttons
 radio_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a", height=30)
@@ -284,12 +286,25 @@ csharp_std.pack(anchor=tk.W, side=tk.LEFT, padx=60)
 graph_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a") #bg="#1a1a1a", bd="5", relief="solid"
 graph_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=8, pady=8, expand=True)
 
+# Manual tuning frame
+manual_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a", height=50)
+manual_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=8, pady=8)
+manual_frame.propagate(False)
+switch_var = customtkinter.StringVar(value="on")
+switch_1 = customtkinter.CTkSwitch(master=manual_frame, text="Auto Note Detection", command=toggle_auto,
+                                   variable=switch_var, onvalue="on", offvalue="off")
+switch_1.pack(side=tk.LEFT, padx=20, pady=10)
+
+
+
 # Note frame
 notevar = tk.StringVar()
-note_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a", height=250, width=250, border_width=5, border_color="#1a1a1a")
+note_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a", height=200, 
+                                    width=200, border_width=5, border_color="#1a1a1a")
 note_frame.pack(fill=tk.BOTH, side=tk.LEFT, padx=8, pady=8)
 note_frame.pack_propagate(False)
-note_label = tk.Label(master=note_frame, textvar=notevar, font=("sans-serif", 80), anchor=tk.CENTER, bg="#1a1a1a", fg="white")
+note_label = tk.Label(master=note_frame, textvar=notevar, font=("sans-serif", 80), 
+                      anchor=tk.CENTER, bg="#1a1a1a", fg="white")
 notevar.set("E")
 note_label.pack(expand=True, padx=20, pady=20)
 
@@ -298,7 +313,8 @@ tunervar = tk.StringVar()
 tuner_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a")
 tuner_frame.pack(fill=tk.BOTH, side=tk.LEFT, padx=8, pady=8, expand=True)
 noteimg = ImageTk.PhotoImage(Image.open("Assets/note.png").resize((200,200)))
-tuner_instruction = tk.Label(master=tuner_frame, textvar=tunervar, font=("sans-serif", 80), anchor=tk.CENTER, bg="#1a1a1a", fg="white", compound="right", image=noteimg)
+tuner_instruction = tk.Label(master=tuner_frame, textvar=tunervar, font=("sans-serif", 80), 
+                             anchor=tk.CENTER, bg="#1a1a1a", fg="white", compound="right", image=noteimg)
 tunervar.set(" ")
 tuner_instruction.pack(expand=True, padx=60, pady=20, side=tk.LEFT)
 

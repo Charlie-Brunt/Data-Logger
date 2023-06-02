@@ -1,5 +1,5 @@
-#define distortionPin 1;
-#define LEDPin 2;
+#define distortionPin 1
+#define LEDPin 2
 
 const byte adcPin = 0;  // A0
 const int MAX_RESULTS = 1;
