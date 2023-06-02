@@ -13,6 +13,7 @@ import serial.tools.list_ports
 import time
 import customtkinter
 from scipy.fft import fft, fftfreq, fftshift
+from scipy.signal import find_peaks
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from BlitManager import BlitManager
 from tkinter import ttk
@@ -40,7 +41,7 @@ def connect_to_arduino(BAUD_RATE, serial_number="95530343834351A0B091"):
     for pinfo in serial.tools.list_ports.comports():
         if pinfo.serial_number == serial_number:
             return serial.Serial(pinfo.device, BAUD_RATE)
-    # raise IOError("No Arduino found")
+    raise IOError("No Arduino found")
 
 
 def animate():
@@ -50,31 +51,30 @@ def animate():
     start_time = time.time()
 
     # Update data
-    try:
-        bit_data = port.read(CHUNK_SIZE)
-        data = np.frombuffer(bit_data, dtype=np.uint8)
-        data = data - np.average(data) # remove DC offset
-        spectrum = fft(data)
-        # amplitudes = np.abs(spectrum)
-        psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
-        
-        if pause == False:
-            # Waveform
-            line1.set_ydata(data)
+    
+    bit_data = port.read(CHUNK_SIZE)
+    data = np.frombuffer(bit_data, dtype=np.uint8)
+    data = data - np.average(data) # remove DC offset
+    spectrum = fft(data)
+    # amplitudes = np.abs(spectrum)
+    psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
+    
+    if pause == False:
+        # Waveform
+        line1.set_ydata(data)
 
-            # Spectrum
-            peak_freq_index = np.argmax(psd)
-            peak_freq = frequencies[peak_freq_index]
-            peak = psd[peak_freq_index]
-            line2.set_ydata(fftshift(psd))
-            pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-            if peak > 10:
-                pklabel.set_position((max(peak_freq*1.1, 40), min((YLIM - 0.5*YLIM, peak))))
-            else:
-                pklabel.set_position((32, 3))
+        # Spectrum
+        peak, peak_freq = find_fundamental(psd)
+        line2.set_ydata(fftshift(psd))
+        pklabel.set_text('{:.2f} Hz'.format(peak_freq))
+        if peak > 10:
+            pklabel.set_position((max(peak_freq*1.1, 40), min((YLIM - 0.5*YLIM, peak))))
+        else:
+            pklabel.set_position((32, 3))
+        try:
             fr_number.set_text("FPS: {:.2f}".format(1.0 / (time.time() - start_time)))
-    except:
-        pass
+        except:
+            fr_number.set_text("FPS: 0.00")
 
     # Update tuning lines
     global switch_tuning
@@ -94,10 +94,7 @@ def animate():
     bm.update()
 
     # Tuning algorithm
-    try:
-        tune(peak_freq, peak, tuning)
-    except:
-        pass
+    tune(peak_freq, peak, tuning)
 
     # Schedule the next update
     root.after(5, animate)
@@ -131,36 +128,50 @@ def toggle_distortion():
     print(distortion)
     
 
+def find_fundamental(psd):
+    # peak_freq_index = np.argmax(psd)
+    # peak = psd[peak_freq_index]
+    peaks, _ = find_peaks(psd, threshold=1000)
+    fundamental_index = peaks[0]
+    fundamental_peak = psd[fundamental_index]
+    fundamental_frequency = frequencies[fundamental_index]
+    return fundamental_peak, fundamental_frequency
+
 
 def tune(peak_frequency, peak, tuning):
     """
     Find closest note and give tuning instructions
     """
-    noteimg = ImageTk.PhotoImage(Image.open("Assets/note.png").resize((200,200)))
-    upimg = ImageTk.PhotoImage(Image.open("Assets/up.png").resize((200,200)))
-    downimg = ImageTk.PhotoImage(Image.open("Assets/down.png").resize((200,200)))
-    equalimg = ImageTk.PhotoImage(Image.open("Assets/equal.png").resize((200,200)))
     closest_note, note_freq = min(tuning.items(), key=lambda x: abs(peak_frequency - x[1]))
-    if peak > THRESHOLD:
+    if peak > THRESHOLD and peak_frequency > 55:
         if abs(peak_frequency - note_freq) < 1.5:
             notevar.set(closest_note)
             tunervar.set("In Tune")
-            note_frame.config(border_color="green")
+            note_frame.configure(border_color="green")
+            equalimg = ImageTk.PhotoImage(Image.open("Assets/equal.png").resize((200,200)))
             tuner_instruction.config(image=equalimg)
+            tuner_instruction.image = equalimg
         elif peak_frequency - note_freq < 0:
             notevar.set(closest_note)
             tunervar.set("Tune Up")
-            note_frame.config(border_color="white")
+            note_frame.configure(border_color="#1a1a1a")
+            upimg = ImageTk.PhotoImage(Image.open("Assets/up.png").resize((200,200)))
             tuner_instruction.config(image=upimg)
+            tuner_instruction.image = upimg
         else:
             notevar.set(closest_note)
             tunervar.set("Tune Down")
-            note_frame.config(border_color="white")
+            note_frame.configure(border_color="#1a1a1a")
+            downimg = ImageTk.PhotoImage(Image.open("Assets/down.png").resize((200,200)))
             tuner_instruction.config(image=downimg)
+            tuner_instruction.image = downimg
     else:
+        noteimg = ImageTk.PhotoImage(Image.open("Assets/note.png").resize((200,200)))
         tuner_instruction.config(image=noteimg)
+        tuner_instruction.image = noteimg
         notevar.set("-")
         tunervar.set(" ")
+        note_frame.configure(border_color="#1a1a1a")
         
     
 
@@ -283,9 +294,6 @@ tunervar = tk.StringVar()
 tuner_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a")
 tuner_frame.pack(fill=tk.BOTH, side=tk.LEFT, padx=8, pady=8, expand=True)
 noteimg = ImageTk.PhotoImage(Image.open("Assets/note.png").resize((200,200)))
-upimg = ImageTk.PhotoImage(Image.open("Assets/up.png").resize((200,200)))
-downimg = ImageTk.PhotoImage(Image.open("Assets/down.png").resize((200,200)))
-equalimg = ImageTk.PhotoImage(Image.open("Assets/equal.png").resize((200,200)))
 tuner_instruction = tk.Label(master=tuner_frame, textvar=tunervar, font=("sans-serif", 80), anchor=tk.CENTER, bg="#1a1a1a", fg="white", compound="right", image=noteimg)
 tunervar.set(" ")
 tuner_instruction.pack(expand=True, padx=60, pady=20, side=tk.LEFT)

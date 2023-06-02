@@ -1,12 +1,15 @@
+#define distortionPin 1;#
+#define LEDPin 2;
+
 const byte adcPin = 0;  // A0
-
 const int MAX_RESULTS = 1;
-
 volatile int results [MAX_RESULTS];
 volatile int resultNumber;
 
 void setup ()
   {
+  pinMode(distortionPin, OUTPUT);
+  pinMode(LEDPin, OUTPUT);
   Serial.begin (1000000);
   Serial.println ();
 
