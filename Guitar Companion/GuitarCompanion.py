@@ -4,31 +4,29 @@ Guitar Companion App
 Author: Charlie Brunt
 
 """
+import tkinter as tk
+import time
 import numpy as np
 import matplotlib.pyplot as plt
-import tkinter as tk
 import seaborn as sns
 import serial
 import serial.tools.list_ports
-import time
 import customtkinter
 from numpy_ringbuffer import RingBuffer
 from scipy.fft import fft, fftfreq, fftshift
 from scipy.signal import find_peaks
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from BlitManager import BlitManager
-from tkinter import ttk
-from ttkthemes import ThemedTk
 from PIL import Image, ImageTk
 
 
-def connect_to_arduino(BAUD_RATE, serial_number="95530343834351A0B091"):
+def connect_to_arduino(baud_rate, serial_number="95530343834351A0B091"):
     """
     Configure the serial port
     """
     for pinfo in serial.tools.list_ports.comports():
         if pinfo.serial_number == serial_number:
-            return serial.Serial(pinfo.device, BAUD_RATE)
+            return serial.Serial(pinfo.device, baud_rate)
     # raise IOError("No Arduino found")
 
 
@@ -65,7 +63,7 @@ def animate():
         peak_freq = frequencies[fundamental_index]
     pklabel.set_text('{:.2f} Hz'.format(peak_freq))
     pklabel.set_position((
-        max(40, peak_freq*1.05), 
+        max(40, peak_freq*1.05),
         max(10, min(YLIM/2, peak))
     ))
 
@@ -397,4 +395,3 @@ if __name__== "__main__":
 
     # Run the Tkinter event loop
     root.mainloop()
-

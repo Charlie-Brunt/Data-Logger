@@ -20,8 +20,9 @@ void setup ()
   TCNT1 = 0;
   TCCR1B = bit (CS11) | bit (WGM12);  // CTC, prescaler of 8
   TIMSK1 = bit (OCIE1B);
-  OCR1A = 249;
-  OCR1B = 249;   // 20 uS - sampling frequency 8 kHz
+  OCR1A = 99;
+  OCR1B = 99;   // 20 uS - sampling frequency 8 kHz
+// 1 / 62.5e-9 * 8 * 20000 = 
 
   ADCSRA =  bit (ADEN) | bit (ADIE) | bit (ADIF);   // turn ADC on, want interrupt on completion
   ADCSRA |= bit (ADPS2);  // Prescaler of 16
@@ -57,7 +58,7 @@ void loop () {
   {
     // int adcValue = results [i];
     // int convertedValue = map(adcValue, 0, pow(2, 10) - 1, 0, pow(2, 8) - 1);
-    Serial.write (results [i]);
+    Serial.write(results [i]);
   }
   resultNumber = 0; 
   ADCSRA =  bit (ADEN) | bit (ADIE) | bit (ADIF)| bit (ADPS2) | bit (ADATE);   
