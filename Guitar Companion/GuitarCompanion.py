@@ -37,7 +37,7 @@ def animate():
     global timer
 
     # Update data
-    bits = port.read(CHUNK_SIZE//30) # ~ 60 fps
+    bits = port.read(CHUNK_SIZE//30) # ~ 30 fps
     decoded_bits = np.frombuffer(bits, dtype=np.uint8)
     r.extend(decoded_bits)
     data = np.array(r) # np.frombuffer(bit_data, dtype=np.uint8)
@@ -46,13 +46,14 @@ def animate():
 
     # Calculate spectrum
     spectrum = fft(data)
+    # psd = np.abs(spectrum)
     psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
     line2.set_ydata(np.pad(fftshift(psd), (0, CHUNK_SIZE - len(data)))) # Plot spectrum
     
     # Find peaks
     peaks, _ = find_peaks(psd, threshold=10000)
     if peaks.size == 0:
-        # If no peaks over 1000, give the strongest frequency
+        # If no peaks over 10000, give the strongest frequency
         peak_freq_index = np.argmax(psd)
         peak = psd[peak_freq_index]
         peak_freq = frequencies[peak_freq_index]
@@ -66,15 +67,18 @@ def animate():
         max(40, peak_freq*1.05),
         max(10, min(YLIM/2, peak))
     ))
+    if peak < 10:
+        pklabel.set_position((32, 3))
+
 
     temp = time.time()
     fr_number.set_text("FPS: {:.2f}".format(1.0 / (temp - timer)))
     timer = temp
 
     # Update tuning lines
-    global switch_tuning
-    if switch_tuning:
-        switch_tuning = False
+    global change_tuning
+    if change_tuning:
+        change_tuning = False
         i = 0
         for note in tuning:
             f = tuning[note]
@@ -101,23 +105,17 @@ def toggle_distortion():
     Toggle distortion effect, change appearance of button and signal a state change to Arduino
     """
     global pedalimg
-    global distortion
-    distortion = not distortion
-    if distortion:
+    global distortion_enabled
+    distortion_enabled = not distortion_enabled
+    if distortion_enabled:
         pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png").resize((320,512)))
         pedal_btn.config(image=pedalimg)
-        try:
-            port.write(1)
-        except:
-            pass
+        port.write(1)
     else:
         pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((320,512)))
         pedal_btn.config(image=pedalimg)
-        try:
-            port.write(2)
-        except:
-            pass
-    print(distortion)
+        port.write(2)
+    print(distortion_enabled)
 
 
 def tune(peak_frequency, peak, tuning):
@@ -156,9 +154,12 @@ def tune(peak_frequency, peak, tuning):
         
 
 def select_tuning():
+    """
+    Callback function to select a tuning
+    """
     global tuning
-    global switch_tuning
-    switch_tuning = True
+    global change_tuning
+    change_tuning = True
     selection = var.get()
     tuning = tunings[selection]
     print(tuning)
@@ -169,14 +170,16 @@ def toggle_auto():
 
 
 def close_window():
+    """
+    Callback function to stop executing code when closing a window
+    """
     exit()
 
 
 if __name__== "__main__":
     # global variables
-    distortion = False
-    switch_tuning = False
-    pause = False
+    distortion_enabled = False
+    change_tuning = False
     timer = 0
 
     # Parameters
@@ -347,7 +350,7 @@ if __name__== "__main__":
     ax1.patch.set_alpha(0)
     ax1.set_xlabel('Time (s)')
     ax1.set_ylabel('Amplitude')
-    ax1.set_xlim(0, CHUNK_SIZE/SAMPLING_RATE)
+    ax1.set_xlim(0, 0.125*CHUNK_SIZE/SAMPLING_RATE)
     ax1.set_ylim(-128,127)
     ax1.grid(axis="x")
     fr_number = ax1.text(0.001, 120, '', va='top', ha='left', fontdict=font)
