@@ -33,7 +33,7 @@ def connect_to_arduino(baud_rate, serial_number="95530343834351A0B091"):
     Configure the serial port
     """
     for pinfo in serial.tools.list_ports.comports():
-        if pinfo.serial_number == serial_number:
+        if pinfo.serial_number == serial_number or "Arduino" in pinfo.description:
             return serial.Serial(pinfo.device, baud_rate)
     raise IOError("No Arduino found")
 
