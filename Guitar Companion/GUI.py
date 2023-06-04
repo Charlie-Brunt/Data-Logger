@@ -12,12 +12,20 @@ import seaborn as sns
 import serial
 import serial.tools.list_ports
 import customtkinter
+import sys
+import os
 from numpy_ringbuffer import RingBuffer
 from scipy.fft import fft, fftfreq, fftshift
 from scipy.signal import find_peaks
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from BlitManager import BlitManager
 from PIL import Image, ImageTk
+
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 
 def connect_to_arduino(baud_rate, serial_number="95530343834351A0B091"):
@@ -108,11 +116,11 @@ def toggle_distortion():
     global distortion_enabled
     distortion_enabled = not distortion_enabled
     if distortion_enabled:
-        pedalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/pedal_on.png").resize((320,512)))
+        pedalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/pedal_on.png")).resize((320,512)))
         pedal_btn.config(image=pedalimg)
         port.write(1)
     else:
-        pedalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/pedal.png").resize((320,512)))
+        pedalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/pedal.png")).resize((320,512)))
         pedal_btn.config(image=pedalimg)
         port.write(2)
     # print(distortion_enabled)
@@ -132,7 +140,7 @@ def tune(peak_frequency, peak, tuning):
             freq_diff_var.set(f"{error} Hz")
             peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
             note_frame.configure(border_color="green")
-            equalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/equal.png").resize((150,150)))
+            equalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/equal.png")).resize((150,150)))
             tuner_instruction.config(image=equalimg)
             tuner_instruction.image = equalimg
         elif error < 0:
@@ -142,7 +150,7 @@ def tune(peak_frequency, peak, tuning):
             freq_diff_var.set(f"{error} Hz")
             peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
             note_frame.configure(border_color="#1a1a1a")
-            upimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/up.png").resize((150,150)))
+            upimg = ImageTk.PhotoImage(Image.open(resource_path("assets/up.png")).resize((150,150)))
             tuner_instruction.config(image=upimg)
             tuner_instruction.image = upimg
         else:
@@ -152,7 +160,7 @@ def tune(peak_frequency, peak, tuning):
             freq_diff_var.set(f"{error} Hz")
             peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
             note_frame.configure(border_color="#1a1a1a")
-            downimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/down.png").resize((150,150)))
+            downimg = ImageTk.PhotoImage(Image.open(resource_path("assets/down.png")).resize((150,150)))
             tuner_instruction.config(image=downimg)
             tuner_instruction.image = downimg
     else:
@@ -182,7 +190,8 @@ def close_window():
     """
     Callback function to stop executing code when closing a window
     """
-    exit()
+    root.destroy()
+    sys.exit()
 
 
 if __name__== "__main__":
@@ -200,6 +209,8 @@ if __name__== "__main__":
 
     # Ring buffer object
     r = RingBuffer(capacity=CHUNK_SIZE, dtype=np.uint8)
+
+    font_name = "sans-serif"
 
     # Tunings from https://pages.mtu.edu/~suits/notefreqs.html
     standard_tuning = {
@@ -286,7 +297,7 @@ if __name__== "__main__":
     root = customtkinter.CTk()
     root.title("Guitar Companion")
     root.geometry("1600x900")
-    root.iconbitmap("Guitar Companion/assets/icon.ico")
+    root.iconbitmap(resource_path("assets/icon.ico"))
     root.protocol("WM_DELETE_WINDOW", close_window)
     root.configure(background="white")
 
@@ -298,13 +309,13 @@ if __name__== "__main__":
     effects_frame_title = tk.Label(
         master=effects_frame,
         text="Effects Window",
-        font=("sans-serif", 10),
+        font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
     )
     effects_frame_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
 
-    pedalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/pedal.png").resize((320,512)))
+    pedalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/pedal.png")).resize((320,512)))
     pedal_btn = tk.Button(master=effects_frame, image=pedalimg, command=toggle_distortion, 
                         bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
     pedal_btn.pack(expand=True, padx=20)
@@ -312,11 +323,11 @@ if __name__== "__main__":
     # Graph frame
     graph_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a")
     graph_frame.pack(fill=tk.BOTH, side=tk.TOP, padx=8, pady=8, expand=True)
-    
+
     graph_frame_title = tk.Label(
         master=graph_frame,
         text="Waveform and Power Spectral Density",
-        font=("sans-serif", 10),
+        font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
     )
@@ -326,14 +337,6 @@ if __name__== "__main__":
     fig = plt.figure()
     fig.patch.set_facecolor('.1')
 
-    # Font dictionary
-    font = {
-        'family': 'sans-serif',
-        'color':  'white',
-        'weight': 'normal',
-        'size': 8
-    }
-
     # Seaborn styles
     sns.set_style("dark", {
         'axes.grid': True,
@@ -342,9 +345,19 @@ if __name__== "__main__":
         'text.color': 'white',
         'xtick.color': 'white',
         'ytick.color': 'white',
-        'axes.labelcolor': 'white'
+        'axes.labelcolor': 'white',
         }
     )
+
+    plt.rcParams["font.family"] = font_name
+
+    # Font dictionary
+    font = {
+        'family': font_name,
+        'color':  'white',
+        'weight': 'normal',
+        'size': 8
+    }
 
     # Time domain plot setup
     ax1 = fig.add_subplot(2, 1, 1)
@@ -403,6 +416,7 @@ if __name__== "__main__":
         text=tuning_labels[i],
         variable=var,
         value=i,
+        font=(font_name, 10),
         command=select_tuning,
         fg_color="#7951FF",
         hover_color="#3A218E")
@@ -425,7 +439,7 @@ if __name__== "__main__":
     note_label_title = tk.Label(
         master=note_frame,
         text="Closest Note",
-        font=("sans-serif", 10),
+        font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
     )
@@ -436,7 +450,7 @@ if __name__== "__main__":
     note_label = tk.Label(
         master=note_frame,
         textvar=notevar,
-        font=("sans-serif", 80),
+        font=(font_name, 80),
         anchor=tk.CENTER,
         bg="#1a1a1a",
         fg="white"
@@ -446,7 +460,7 @@ if __name__== "__main__":
     # note_freq_title = tk.Label(
     #     master=note_frame,
     #     text="Note Frequency",
-    #     font=("sans-serif", 10),
+    #     font=(font_name, 10),
     #     bg="#1a1a1a",
     #     fg="#5f5f5f"
     # )
@@ -457,7 +471,7 @@ if __name__== "__main__":
     note_freq_label = tk.Label(
         master=note_frame,
         textvar=note_freq_var,
-        font=("sans-serif", 15),
+        font=(font_name, 15),
         anchor=tk.CENTER,
         bg="#1a1a1a",
         fg="white"
@@ -477,7 +491,7 @@ if __name__== "__main__":
     peak_freq_title = tk.Label(
         master=freq_frame,
         text="Peak Frequency",
-        font=("sans-serif", 10),
+        font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
     )
@@ -488,7 +502,7 @@ if __name__== "__main__":
     peak_freq_label = tk.Label(
         master=freq_frame,
         textvar=peak_freq_var,
-        font=("sans-serif", 40),
+        font=(font_name, 40),
         anchor=tk.CENTER,
         bg="#1a1a1a",
         fg="white"
@@ -498,7 +512,7 @@ if __name__== "__main__":
     freq_diff_title = tk.Label(
         master=freq_frame,
         text="Frequency Error",
-        font=("sans-serif", 10),
+        font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
     )
@@ -509,7 +523,7 @@ if __name__== "__main__":
     freq_diff_label = tk.Label(
         master=freq_frame,
         textvar=freq_diff_var,
-        font=("sans-serif", 40), 
+        font=(font_name, 40), 
         anchor=tk.CENTER,
         bg="#1a1a1a",
         fg="white"
@@ -523,19 +537,19 @@ if __name__== "__main__":
     tuner_frame_title = tk.Label(
         master=tuner_frame,
         text="Tuning",
-        font=("sans-serif", 10),
+        font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
     )
     tuner_frame_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
-    
-    noteimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/note.png").resize((150,150)))
+
+    noteimg = ImageTk.PhotoImage(Image.open(resource_path("assets/note.png")).resize((150,150)))
     tunervar = tk.StringVar()
     tunervar.set(" ")
     tuner_instruction = tk.Label(
         master=tuner_frame,
         textvar=tunervar,
-        font=("sans-serif", 60), 
+        font=(font_name, 60), 
         anchor=tk.CENTER,
         bg="#1a1a1a",
         fg="white",
