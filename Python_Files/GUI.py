@@ -4,16 +4,17 @@ Guitar Companion App
 Author: Charlie Brunt
 
 """
+import sys
+import os
 import tkinter as tk
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as font_manager
 import seaborn as sns
 import serial
 import serial.tools.list_ports
 import customtkinter
-import sys
-import os
 from numpy_ringbuffer import RingBuffer
 from scipy.fft import fft, fftfreq, fftshift
 from scipy.signal import find_peaks
@@ -105,7 +106,7 @@ def animate():
     bm.update()
 
     # Schedule the next update
-    root.after(5, animate)
+    root.after(1, animate)
 
 
 def toggle_distortion():
@@ -195,6 +196,11 @@ def close_window():
 
 
 if __name__== "__main__":
+    # Set font family globally
+    font_manager._load_fontmanager(try_read_cache=False)
+    font_name = "Inter"
+
+
     # global variables
     distortion_enabled = False
     change_tuning = False
@@ -209,8 +215,6 @@ if __name__== "__main__":
 
     # Ring buffer object
     r = RingBuffer(capacity=CHUNK_SIZE, dtype=np.uint8)
-
-    font_name = "sans-serif"
 
     # Tunings from https://pages.mtu.edu/~suits/notefreqs.html
     standard_tuning = {
@@ -316,8 +320,14 @@ if __name__== "__main__":
     effects_frame_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
 
     pedalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/pedal.png")).resize((320,512)))
-    pedal_btn = tk.Button(master=effects_frame, image=pedalimg, command=toggle_distortion, 
-                        bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
+    pedal_btn = tk.Button(
+        master=effects_frame,
+        image=pedalimg,
+        command=toggle_distortion,
+        bd=0,
+        bg="#1a1a1a",
+        activebackground="#1a1a1a"
+    )
     pedal_btn.pack(expand=True, padx=20)
 
     # Graph frame
@@ -393,7 +403,7 @@ if __name__== "__main__":
         note_lines.append(ax2.axvline(f, ymin=0.06, ymax=0.93, color ='white', linewidth=1))
         note_labels.append(ax2.text(f, 0.45*YLIM, note, ha="center", fontdict=font))
         freq_labels.append(ax2.text(f, 1.2, f, ha="center", fontdict=font))
- 
+
     # Horizontal line
     hline, = ax2.plot([0,0], [0,0], ":", color="#afafaf", linewidth=1)
 
@@ -564,7 +574,7 @@ if __name__== "__main__":
     canvas.draw()
 
     # Schedule the first update
-    root.after(5, animate)
+    root.after(1, animate)
 
     # Run the Tkinter event loop
     root.mainloop()
