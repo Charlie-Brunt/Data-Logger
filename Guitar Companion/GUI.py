@@ -81,7 +81,7 @@ def animate():
         i = 0
         for note in tuning:
             f = tuning[note]
-            note_lines[i].set_xdata(f)
+            note_lines[i].set_xdata([f])
             note_labels[i].set_text(note)
             note_labels[i].set_position((f, 0.5*YLIM))
             freq_labels[i].set_text(f)
@@ -108,14 +108,14 @@ def toggle_distortion():
     global distortion_enabled
     distortion_enabled = not distortion_enabled
     if distortion_enabled:
-        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal_on.png").resize((320,512)))
+        pedalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/pedal_on.png").resize((320,512)))
         pedal_btn.config(image=pedalimg)
         port.write(1)
     else:
-        pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((320,512)))
+        pedalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/pedal.png").resize((320,512)))
         pedal_btn.config(image=pedalimg)
         port.write(2)
-    print(distortion_enabled)
+    # print(distortion_enabled)
 
 
 def tune(peak_frequency, peak, tuning):
@@ -132,7 +132,7 @@ def tune(peak_frequency, peak, tuning):
             freq_diff_var.set(f"{error} Hz")
             peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
             note_frame.configure(border_color="green")
-            equalimg = ImageTk.PhotoImage(Image.open("Assets/equal.png").resize((150,150)))
+            equalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/equal.png").resize((150,150)))
             tuner_instruction.config(image=equalimg)
             tuner_instruction.image = equalimg
         elif error < 0:
@@ -142,7 +142,7 @@ def tune(peak_frequency, peak, tuning):
             freq_diff_var.set(f"{error} Hz")
             peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
             note_frame.configure(border_color="#1a1a1a")
-            upimg = ImageTk.PhotoImage(Image.open("Assets/up.png").resize((150,150)))
+            upimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/up.png").resize((150,150)))
             tuner_instruction.config(image=upimg)
             tuner_instruction.image = upimg
         else:
@@ -152,7 +152,7 @@ def tune(peak_frequency, peak, tuning):
             freq_diff_var.set(f"{error} Hz")
             peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
             note_frame.configure(border_color="#1a1a1a")
-            downimg = ImageTk.PhotoImage(Image.open("Assets/down.png").resize((150,150)))
+            downimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/down.png").resize((150,150)))
             tuner_instruction.config(image=downimg)
             tuner_instruction.image = downimg
     else:
@@ -161,7 +161,7 @@ def tune(peak_frequency, peak, tuning):
         notevar.set("-")
         tunervar.set(" ")
         note_freq_var.set(" ")
-        freq_diff_var.set("0.0 Hz")
+        freq_diff_var.set("-")
         peak_freq_var.set("-")
         note_frame.configure(border_color="#1a1a1a")
     return note_freq
@@ -176,7 +176,6 @@ def select_tuning():
     change_tuning = True
     selection = var.get()
     tuning = tunings[selection]
-    print(tuning)
 
 
 def close_window():
@@ -197,7 +196,7 @@ if __name__== "__main__":
     SAMPLING_RATE = 20000
     BAUD_RATE = 1000000
     YLIM = 1000000 # 20000
-    THRESHOLD = 1000
+    THRESHOLD = 100
 
     # Ring buffer object
     r = RingBuffer(capacity=CHUNK_SIZE, dtype=np.uint8)
@@ -287,7 +286,7 @@ if __name__== "__main__":
     root = customtkinter.CTk()
     root.title("Guitar Companion")
     root.geometry("1600x900")
-    root.iconbitmap("Assets/icon.ico")
+    root.iconbitmap("Guitar Companion/assets/icon.ico")
     root.protocol("WM_DELETE_WINDOW", close_window)
     root.configure(background="white")
 
@@ -305,7 +304,7 @@ if __name__== "__main__":
     )
     effects_frame_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
 
-    pedalimg = ImageTk.PhotoImage(Image.open("Assets/pedal.png").resize((320,512)))
+    pedalimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/pedal.png").resize((320,512)))
     pedal_btn = tk.Button(master=effects_frame, image=pedalimg, command=toggle_distortion, 
                         bd=0, bg="#1a1a1a", activebackground="#1a1a1a")
     pedal_btn.pack(expand=True, padx=20)
@@ -506,7 +505,7 @@ if __name__== "__main__":
     freq_diff_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
 
     freq_diff_var = tk.StringVar()
-    freq_diff_var.set("0.0 Hz")
+    freq_diff_var.set("-")
     freq_diff_label = tk.Label(
         master=freq_frame,
         textvar=freq_diff_var,
@@ -530,7 +529,7 @@ if __name__== "__main__":
     )
     tuner_frame_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
     
-    noteimg = ImageTk.PhotoImage(Image.open("Assets/note.png").resize((150,150)))
+    noteimg = ImageTk.PhotoImage(Image.open("Guitar Companion/assets/note.png").resize((150,150)))
     tunervar = tk.StringVar()
     tunervar.set(" ")
     tuner_instruction = tk.Label(
