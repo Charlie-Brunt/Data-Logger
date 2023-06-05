@@ -44,21 +44,24 @@ def animate():
     Update plotted data on graphs
     """
     # Update data
-    bits = port.read(CHUNK_SIZE//30) # ~ 30 fps
+    bits = port.read(CHUNK_SIZE//60) # ~ 30 fps
     decoded_bits = np.frombuffer(bits, dtype=np.uint8)
     r.extend(decoded_bits)
     data = np.array(r) # np.frombuffer(bit_data, dtype=np.uint8)
     data = data - np.average(data) # remove DC offset
     line1.set_ydata(np.pad(data, (0, CHUNK_SIZE - len(data)))) # Plot waveform
 
+    # Hann window
+    windowed_data = np.hanning(len(data)) * data
+
     # Calculate spectrum
-    spectrum = fft(data)
+    spectrum = fft(windowed_data)
     # psd = np.abs(spectrum)
     psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
     line2.set_ydata(np.pad(fftshift(psd), (0, CHUNK_SIZE - len(data)))) # Plot spectrum
-    
+
     # Find peaks
-    peaks, _ = find_peaks(psd, threshold=10000)
+    peaks, _ = find_peaks(psd, threshold=THRESHOLD)
     if peaks.size == 0:
         # If no peaks over 10000, give the strongest frequency
         peak_freq_index = np.argmax(psd)
@@ -69,18 +72,24 @@ def animate():
         fundamental_index = peaks[0]
         peak = psd[fundamental_index]
         peak_freq = frequencies[fundamental_index]
-    pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-    pklabel.set_position((
-        max(40, peak_freq),
-        max(10, min(YLIM/2, peak*1.5))
-    ))
-    if peak < 10:
-        pklabel.set_position((32, 3))
-        pklabel.set_text('{:.2f} Hz'.format(0.00))
-    
+
+    # Call tuning function
+    closest_note_freq = tune(peak_freq, peak, tuning)
+
+    # Update peak label and line segment between peak and closest note
+    if peak > 10 and peak_freq > 30:
+        hline.set_ydata([peak,peak])
+        hline.set_xdata([peak_freq, closest_note_freq])
+        pklabel.set_text('{:.2f} Hz'.format(peak_freq))
+        pklabel.set_position((max(40, peak_freq), max(10, min(YLIM/2, peak*1.5))))
+    else:
+        hline.set_ydata([0,0])
+        hline.set_xdata([0,0])
+        pklabel.set_text("")
+
     global timer
     temp = time.time()
-    fr_number.set_text("FPS: {:.2f}".format(1.0 / (temp - timer)))
+    fr_number.set_text("FPS: {:.1f}".format(1.0 / (temp - timer)))
     timer = temp
 
     # Update tuning lines
@@ -96,11 +105,6 @@ def animate():
             freq_labels[i].set_text(f)
             freq_labels[i].set_position((f, 1.2))
             i += 1
-
-    # Tuning algorithm
-    closest_note_freq = tune(peak_freq, peak, tuning)
-    hline.set_ydata([peak,peak])
-    hline.set_xdata([peak_freq, closest_note_freq])
 
     # Update the canvas
     bm.update()
@@ -129,52 +133,62 @@ def toggle_distortion():
 
 def tune(peak_frequency, peak, tuning):
     """
-    Find closest note and give tuning instructions
+    Find closest note and handle GUI updates with tuning instructions
     """
+    global tuning_state
+    prev_tuning_state = tuning_state
     closest_note, note_freq = min(tuning.items(), key=lambda x: abs(peak_frequency - x[1]))
     error = round(peak_frequency - note_freq, 1)
-    if peak > THRESHOLD and peak_frequency > 10:
+    try:
+        error_c = round(1200 * np.log2(peak_frequency/note_freq), 1)
+    except:
+        error_c = 0
+    if peak > THRESHOLD and peak_frequency > 30:
         if abs(error) < 0.5:
-            notevar.set(closest_note)
-            tunervar.set("In Tune")
-            note_freq_var.set(f"{note_freq} Hz")
-            freq_diff_var.set(f"{error} Hz")
-            peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
-            note_frame.configure(border_color="green")
-            equalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/equal.png")).resize((150,150)))
-            tuner_instruction.config(image=equalimg)
-            tuner_instruction.image = equalimg
+            # In tune
+            tuning_state = "In Tune   "
+            if tuning_state != prev_tuning_state:
+                tunervar.set(tuning_state)
+                note_frame.configure(border_color="#32C671")
+                tuner_instruction.config(image=equalimg)
+                tuner_instruction.image = equalimg
         elif error < 0:
-            notevar.set(closest_note)
-            tunervar.set("Tune Up")
-            note_freq_var.set(f"{note_freq} Hz")
-            freq_diff_var.set(f"{error} Hz")
-            peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
-            note_frame.configure(border_color="#1a1a1a")
-            upimg = ImageTk.PhotoImage(Image.open(resource_path("assets/up.png")).resize((150,150)))
-            tuner_instruction.config(image=upimg)
-            tuner_instruction.image = upimg
+            # Flat
+            tuning_state = "Tune Up"
+            if tuning_state != prev_tuning_state:
+                tunervar.set(tuning_state)
+                note_frame.configure(border_color="#1a1a1a")
+                tuner_instruction.config(image=upimg)
+                tuner_instruction.image = upimg
         else:
-            notevar.set(closest_note)
-            tunervar.set("Tune Down")
-            note_freq_var.set(f"{note_freq} Hz")
+            # Sharp
+            tuning_state = "Tune Down"
+            if tuning_state != prev_tuning_state:
+                tunervar.set(tuning_state)
+                note_frame.configure(border_color="#1a1a1a")
+                tuner_instruction.config(image=downimg)
+                tuner_instruction.image = downimg
+        notevar.set(closest_note)
+        note_freq_var.set(f"{note_freq} Hz")
+        if error_unit_var.get() == "Hz":
             freq_diff_var.set(f"{error} Hz")
-            peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
-            note_frame.configure(border_color="#1a1a1a")
-            downimg = ImageTk.PhotoImage(Image.open(resource_path("assets/down.png")).resize((150,150)))
-            tuner_instruction.config(image=downimg)
-            tuner_instruction.image = downimg
+        else:
+            freq_diff_var.set(f"{error_c} c")
+        peak_freq_var.set(f"{round(peak_frequency, 1)} Hz")
     else:
-        tuner_instruction.config(image=noteimg)
-        tuner_instruction.image = noteimg
-        notevar.set("-")
-        tunervar.set(" ")
+        # Below threshold
+        tuning_state = " "
+        if tuning_state != prev_tuning_state:
+            tunervar.set(tuning_state)
+            note_frame.configure(border_color="#1a1a1a")
+            tuner_instruction.config(image=noteimg)
+            tuner_instruction.image = noteimg
+            notevar.set("-")
         note_freq_var.set(" ")
         freq_diff_var.set("-")
         peak_freq_var.set("-")
-        note_frame.configure(border_color="#1a1a1a")
     return note_freq
-        
+
 
 def select_tuning():
     """
@@ -186,12 +200,20 @@ def select_tuning():
     selection = var.get()
     tuning = tunings[selection]
 
+def toggle_units():
+    units = error_unit_var.get()
+    if units == "Hz":
+        error_unit_var.set("Cents")
+    else:
+        error_unit_var.set("Hz")
+
+
 
 def close_window():
     """
     Callback function to stop executing code when closing a window
     """
-    root.destroy()
+    # root.destroy()
     sys.exit()
 
 
@@ -205,20 +227,21 @@ if __name__== "__main__":
     distortion_enabled = False
     change_tuning = False
     timer = 0
+    tuning_state = " "
 
     # Parameters
     CHUNK_SIZE = 32768
     SAMPLING_RATE = 20000
     BAUD_RATE = 1000000
     YLIM = 1000000 # 20000
-    THRESHOLD = 100
+    THRESHOLD = 1000
 
     # Ring buffer object
     r = RingBuffer(capacity=CHUNK_SIZE, dtype=np.uint8)
 
     # Tunings from https://pages.mtu.edu/~suits/notefreqs.html
     standard_tuning = {
-        'E2': 82.4,
+        'E2': 82.4, # 82.4
         'A2': 110.0,
         'D3': 146.8,
         'G3': 196.0,
@@ -266,7 +289,7 @@ if __name__== "__main__":
         'D2': 73.4,
         'A2': 110.0,
         'D3': 146.8,
-        'F♯3': 185.0,
+        'F#3': 185.0,
         'A3': 220.0,
         'D4': 293.7
     }
@@ -491,7 +514,7 @@ if __name__== "__main__":
     # Frequency frame
     freq_frame = customtkinter.CTkFrame(
         master=root,
-        fg_color="#1a1a1a", 
+        fg_color="#1a1a1a",
         height=250,
         width=250,
     )
@@ -517,11 +540,11 @@ if __name__== "__main__":
         bg="#1a1a1a",
         fg="white"
     )
-    peak_freq_label.pack(side=tk.TOP, expand=True, pady=10)
+    peak_freq_label.pack(side=tk.TOP, expand=True, pady=5)
 
     freq_diff_title = tk.Label(
         master=freq_frame,
-        text="Frequency Error",
+        text="Error",
         font=(font_name, 10),
         bg="#1a1a1a",
         fg="#5f5f5f"
@@ -533,12 +556,26 @@ if __name__== "__main__":
     freq_diff_label = tk.Label(
         master=freq_frame,
         textvar=freq_diff_var,
-        font=(font_name, 40), 
+        font=(font_name, 40),
         anchor=tk.CENTER,
         bg="#1a1a1a",
         fg="white"
     )
-    freq_diff_label.pack(side=tk.TOP, expand=True, pady=10)
+    freq_diff_label.pack(side=tk.TOP, expand=True, pady=5)
+
+    error_unit_var = tk.StringVar()
+    error_unit_var.set("Hz")
+    error_unit_button = customtkinter.CTkButton(
+        master=freq_frame,
+        textvariable=error_unit_var,
+        fg_color="#2a2a2a",
+        hover_color="#6a6a6a",
+        command=toggle_units,
+        font=(font_name, 10),
+        width=40,
+        height=15,
+    )
+    error_unit_button.pack(side=tk.TOP, anchor=tk.SE, padx=10, pady=5)
 
     # Tuner frame
     tuner_frame = customtkinter.CTkFrame(master=root, fg_color="#1a1a1a")
@@ -554,6 +591,9 @@ if __name__== "__main__":
     tuner_frame_title.pack(side=tk.TOP, anchor=tk.NW, padx=10, pady=5)
 
     noteimg = ImageTk.PhotoImage(Image.open(resource_path("assets/note.png")).resize((150,150)))
+    equalimg = ImageTk.PhotoImage(Image.open(resource_path("assets/equal.png")).resize((70,70)))
+    upimg = ImageTk.PhotoImage(Image.open(resource_path("assets/up.png")).resize((150,150)))
+    downimg = ImageTk.PhotoImage(Image.open(resource_path("assets/down.png")).resize((150,150)))
     tunervar = tk.StringVar()
     tunervar.set(" ")
     tuner_instruction = tk.Label(
