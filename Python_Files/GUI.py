@@ -48,7 +48,7 @@ def animate():
     decoded_bits = np.frombuffer(bits, dtype=np.uint8)
     r.extend(decoded_bits)
     data = np.array(r) # np.frombuffer(bit_data, dtype=np.uint8)
-    data = data - np.average(data) # remove DC offset
+    data = (data - np.average(data))/128 # remove DC offset and normalise
     line1.set_ydata(np.pad(data, (0, CHUNK_SIZE - len(data)))) # Plot waveform
 
     # Hann window
@@ -56,14 +56,14 @@ def animate():
 
     # Calculate spectrum
     spectrum = fft(windowed_data)
-    # psd = np.abs(spectrum)
-    psd = np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real)
+    # psd = 20*np.log10(np.abs(spectrum))
+    psd = 10*np.log10(np.abs((spectrum * np.conjugate(spectrum) / CHUNK_SIZE).real))
     line2.set_ydata(np.pad(fftshift(psd), (0, CHUNK_SIZE - len(data)))) # Plot spectrum
 
     # Find peaks
-    peaks, _ = find_peaks(psd, threshold=THRESHOLD)
+    peaks, _ = find_peaks(psd, height=THRESHOLD)
     if peaks.size == 0:
-        # If no peaks over 10000, give the strongest frequency
+        # If no peaks over threshold, give the strongest frequency
         peak_freq_index = np.argmax(psd)
         peak = psd[peak_freq_index]
         peak_freq = frequencies[peak_freq_index]
@@ -77,11 +77,11 @@ def animate():
     closest_note_freq = tune(peak_freq, peak, tuning)
 
     # Update peak label and line segment between peak and closest note
-    if peak > 10 and peak_freq > 30:
+    if peak > -50 and peak_freq > 30:
         hline.set_ydata([peak,peak])
         hline.set_xdata([peak_freq, closest_note_freq])
         pklabel.set_text('{:.2f} Hz'.format(peak_freq))
-        pklabel.set_position((max(40, peak_freq), max(10, min(YLIM/2, peak*1.5))))
+        pklabel.set_position((max(40, peak_freq), max(-50, min(YLIM - 3, peak + 1.76))))
     else:
         hline.set_ydata([0,0])
         hline.set_xdata([0,0])
@@ -101,9 +101,9 @@ def animate():
             f = tuning[note]
             note_lines[i].set_xdata([f])
             note_labels[i].set_text(note)
-            note_labels[i].set_position((f, 0.5*YLIM))
+            note_labels[i].set_position((f, YLIM - 3))
             freq_labels[i].set_text(f)
-            freq_labels[i].set_position((f, 1.2))
+            freq_labels[i].set_position((f, -59.2))
             i += 1
 
     # Update the canvas
@@ -200,6 +200,7 @@ def select_tuning():
     selection = var.get()
     tuning = tunings[selection]
 
+
 def toggle_units():
     units = error_unit_var.get()
     if units == "Hz":
@@ -233,8 +234,8 @@ if __name__== "__main__":
     CHUNK_SIZE = 32768
     SAMPLING_RATE = 20000
     BAUD_RATE = 1000000
-    YLIM = 1000000 # 20000
-    THRESHOLD = 1000
+    YLIM = 0 # dB
+    THRESHOLD = -20 # dB
 
     # Ring buffer object
     r = RingBuffer(capacity=CHUNK_SIZE, dtype=np.uint8)
@@ -399,23 +400,23 @@ if __name__== "__main__":
     ax1.set_xlabel('Time (s)')
     ax1.set_ylabel('Amplitude')
     ax1.set_xlim(0, 0.125*CHUNK_SIZE/SAMPLING_RATE)
-    ax1.set_ylim(-128,127)
+    ax1.set_ylim(-1,1)
     ax1.grid(axis="x")
-    fr_number = ax1.text(0.001, 120, '', va='top', ha='left', fontdict=font)
+    fr_number = ax1.text(0.001, 0.938, '', va='top', ha='left', fontdict=font)
 
     # Frequency spectrum plot setup
     ax2 = fig.add_subplot(2, 1, 2)
     line2, = ax2.plot(fftshift(frequencies), np.ones(CHUNK_SIZE), color="#7951FF")
     ax2.patch.set_alpha(0)
     ax2.set_xlabel('Frequency (Hz)')
-    ax2.set_ylabel('Power Spectral Density')
-    ax2.set_yscale("log")
+    ax2.set_ylabel('Power Spectral Density (dB)')
+    # ax2.set_yscale("log")
     ax2.set_xscale("log")
     ax2.set_xlim(30, 1000)
-    ax2.set_ylim(1, YLIM)
+    ax2.set_ylim(-60, YLIM)
     ax2.grid(axis="x")
     pklabel = ax2.text(0, 0, '', va='center', fontdict=font)
-    fig.subplots_adjust(left=0.07, bottom=0.1, right=0.93, top=1, wspace=0.5, hspace=0.3)
+    fig.subplots_adjust(left=0.07, bottom=0.1, right=0.93, top=0.98, wspace=0.5, hspace=0.3)
 
     # Setup tuning lines
     note_lines = []
@@ -424,8 +425,8 @@ if __name__== "__main__":
     for note in tuning:
         f = tuning[note]
         note_lines.append(ax2.axvline(f, ymin=0.06, ymax=0.93, color ='white', linewidth=1))
-        note_labels.append(ax2.text(f, 0.45*YLIM, note, ha="center", fontdict=font))
-        freq_labels.append(ax2.text(f, 1.2, f, ha="center", fontdict=font))
+        note_labels.append(ax2.text(f, YLIM - 3.47, note, ha="center", fontdict=font))
+        freq_labels.append(ax2.text(f, -59.2, f, ha="center", fontdict=font))
 
     # Horizontal line
     hline, = ax2.plot([0,0], [0,0], ":", color="#afafaf", linewidth=1)
