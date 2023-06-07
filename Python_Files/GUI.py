@@ -144,7 +144,7 @@ def tune(peak_frequency, peak, tuning):
     except:
         error_c = 0
     if peak > THRESHOLD and peak_frequency > 30:
-        if abs(error) < 0.5:
+        if abs(error) < 1:
             # In tune
             tuning_state = "In Tune   "
             if tuning_state != prev_tuning_state:
@@ -235,7 +235,7 @@ if __name__== "__main__":
     SAMPLING_RATE = 20000
     BAUD_RATE = 1000000
     YLIM = 0 # dB
-    THRESHOLD = -20 # dB
+    THRESHOLD = -15 # dB
 
     # Ring buffer object
     r = RingBuffer(capacity=CHUNK_SIZE, dtype=np.uint8)
