@@ -27,6 +27,6 @@ Guitar Companion App
 
 ![GUI](ui.png?raw=true "GUI")
 
-## Installation
+## Usage
 
-Clone repository and run "Guitar Companion.exe" in the Guitar Companion folder.
+Clone repository and run "GUI.py" in Python Files.
