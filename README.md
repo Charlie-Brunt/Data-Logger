@@ -1,4 +1,4 @@
-# SF4: Data-Logger Guitar Companion
+# Data-Logger Guitar Companion
 
 ![Splash](splash.png?raw=true "Splash")
 
